@@ -1,0 +1,39 @@
+# --- Du lieu (KHONG commit du lieu benh nhan / du lieu co giay phep rieng) ---
+data/raw/*
+!data/raw/healthcare-dataset-stroke-data.csv
+!data/raw/README.md
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+data/SSoT_pdf_references/*.pdf
+
+# --- Ket qua sinh ra tu ma nguon ---
+reports/figures/*.png
+reports/*.csv
+reports/*.json
+reports/*.txt
+!reports/README.md
+*.joblib
+*.pkl
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# --- Moi truong ao ---
+.venv/
+venv/
+env/
+
+# --- Notebook ---
+.ipynb_checkpoints/
+
+# --- He dieu hanh / IDE ---
+.DS_Store
+.vscode/
+.idea/
