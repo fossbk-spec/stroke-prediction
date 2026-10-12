@@ -1,7 +1,8 @@
-"""Unit test cho module EDA: moi ham phai chay end-to-end khong loi.
+"""Unit tests for the EDA module: every function must run end-to-end without errors.
 
-De bai yeu cau ro: "Ma nguon EDA bat buoc phai dong goi thanh cac ham co kha
-nang tai su dung, thuc thi end-to-end khong phat sinh loi" -> test hoa yeu cau do.
+The assignment explicitly requires: "EDA source code must be packaged into
+reusable functions, executable end-to-end without errors" -> this test suite
+enforces exactly that.
 """
 
 from __future__ import annotations
@@ -17,7 +18,7 @@ class TestEdaTables:
         bmi_row = report.loc[report["feature"] == "bmi"].iloc[0]
         smoking_row = report.loc[report["feature"] == "smoking_status"].iloc[0]
         assert bmi_row["n_missing"] > 0
-        assert smoking_row["n_unknown_token"] > 0, "'Unknown' phai duoc bao cao rieng"
+        assert smoking_row["n_unknown_token"] > 0, "'Unknown' must be reported separately"
 
     def test_class_balance_reports_both_levels(self, synthetic_df):
         report = eda.class_balance_report(synthetic_df)
@@ -25,7 +26,7 @@ class TestEdaTables:
         assert (report["positive_rate"] < 0.2).all()
 
     def test_patient_level_differs_when_records_are_duplicated(self, multi_record_df):
-        """Voi du lieu nhieu ban ghi/benh nhan, hai cap do phai cho so khac nhau."""
+        """With multiple records per patient, the two levels must give different counts."""
         report = eda.class_balance_report(multi_record_df).set_index("level")
         assert report.loc["sample-level", "n_total"] > report.loc["patient-level", "n_total"]
 
@@ -67,7 +68,7 @@ class TestEdaOrchestration:
         assert expected == set(tables)
         for name, table in tables.items():
             assert isinstance(table, pd.DataFrame)
-            assert not table.empty, f"Bang '{name}' bi rong"
+            assert not table.empty, f"Table '{name}' is empty"
             assert (tmp_path / f"eda_{name}.csv").exists()
 
     def test_eda_does_not_mutate_input(self, synthetic_df):

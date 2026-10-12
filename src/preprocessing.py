@@ -1,16 +1,18 @@
-"""Tien xu ly du lieu theo ky luat ZERO DATA LEAKAGE.
+"""Data preprocessing under the ZERO DATA LEAKAGE discipline.
 
-Nguyen tac bat buoc cua module nay:
+Mandatory principles of this module:
 
-1. **Patient-level splitting**: moi `patient_id` chi xuat hien trong DUNG MOT
-   tap (train / validation / test). Dung `StratifiedGroupKFold` (phan tang
-   theo nhan `stroke`, nhom theo `id`).
+1. **Patient-level splitting**: every `patient_id` must appear in EXACTLY ONE
+   split (train / validation / test). We use `StratifiedGroupKFold`
+   (stratified by the `stroke` label, grouped by `id`).
 2. **Fit-on-train-only**: `KNNImputer`, `StandardScaler`, `OneHotEncoder`,
-   `SMOTE` chi duoc `fit` tren tap train. Validation/test chi `transform`.
-3. **SMOTE nam trong Pipeline**: dung `imblearn.pipeline.Pipeline` nen khi
-   cross-validation, SMOTE chi chay tren cac fold train — khong bao gio
-   chay tren fold validation. Day chinh la loi ma Dritsas & Trigka (2022) va
-   Abed et al. (2022) mac phai khi SMOTE toan bo dataset truoc 10-fold CV.
+   `SMOTE` must only be `fit` on the train split. Validation/test only ever
+   call `.transform()`.
+3. **SMOTE lives inside the Pipeline**: using `imblearn.pipeline.Pipeline`
+   guarantees that during cross-validation, SMOTE only runs on the train
+   folds — never on the validation fold. This is exactly the mistake made
+   by Dritsas & Trigka (2022) and Abed et al. (2022), who applied SMOTE to
+   the whole dataset before 10-fold CV.
 """
 
 from __future__ import annotations
@@ -30,15 +32,15 @@ from src import config
 
 
 class DataLeakageError(AssertionError):
-    """Phat hien ro ri du lieu giua cac tap."""
+    """Data leakage detected between splits."""
 
 
 # --------------------------------------------------------------------------- #
-# 1. Chia du lieu cap do benh nhan
+# 1. Patient-level data splitting
 # --------------------------------------------------------------------------- #
 @dataclass
 class DataSplit:
-    """Ket qua chia du lieu cap do benh nhan."""
+    """Result of a patient-level data split."""
 
     train: pd.DataFrame
     val: pd.DataFrame
@@ -64,16 +66,16 @@ class DataSplit:
 def _group_stratified_holdout(
     df: pd.DataFrame, holdout_size: float, random_state: int
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Tach mot phan hold-out, phan tang theo nhan va nhom theo patient id.
+    """Carve out a hold-out split, stratified by label and grouped by patient id.
 
-    `StratifiedGroupKFold` duoc uu tien hon `GroupShuffleSplit` vi no vua giu
-    nguyen ven nhom benh nhan, vua co gang bao toan ty le lop duong tinh
-    (4.9%) — dieu toi quan trong voi du lieu mat can bang nghiem trong.
+    `StratifiedGroupKFold` is preferred over `GroupShuffleSplit` because it
+    both keeps patient groups intact AND tries to preserve the positive-class
+    ratio (4.9%) — critical with severe class imbalance.
     """
     from sklearn.model_selection import StratifiedGroupKFold
 
     if not 0 < holdout_size < 1:
-        raise ValueError("holdout_size phai nam trong khoang (0, 1).")
+        raise ValueError("holdout_size must be in the (0, 1) range.")
 
     n_splits = max(2, int(round(1 / holdout_size)))
     sgkf = StratifiedGroupKFold(n_splits=n_splits, shuffle=True, random_state=random_state)
@@ -91,15 +93,15 @@ def patient_level_split(
     random_state: int = config.RANDOM_STATE,
     verify: bool = True,
 ) -> DataSplit:
-    """Chia du lieu thanh train / validation / test o CAP DO BENH NHAN.
+    """Split the data into train / validation / test at the PATIENT LEVEL.
 
-    Quy trinh 2 buoc:
+    Two-step procedure:
         df  ->  (train_val, test)  ->  (train, val)
 
     Args:
-        test_size: ty le tap test tren toan bo du lieu.
-        val_size: ty le tap validation tren phan `train_val`.
-        verify: tu dong goi `verify_zero_data_leakage` sau khi chia.
+        test_size: test set fraction of the whole dataset.
+        val_size: validation set fraction of the `train_val` remainder.
+        verify: automatically call `verify_zero_data_leakage` after splitting.
     """
     df = df.reset_index(drop=True)
     train_val, test = _group_stratified_holdout(df, test_size, random_state)
@@ -120,13 +122,13 @@ def verify_zero_data_leakage(
     *,
     verbose: bool = True,
 ) -> bool:
-    """Assertion code kiem chung ky luat Zero Data Leakage cap Patient ID.
+    """Assertion code verifying the ZERO DATA LEAKAGE discipline at Patient ID level.
 
     Returns:
-        True neu khong co bat ky `patient_id` nao xuat hien o hai tap khac nhau.
+        True if no `patient_id` appears in two different splits.
 
     Raises:
-        DataLeakageError: neu phat hien giao nhau giua cac tap.
+        DataLeakageError: if an overlap between splits is detected.
     """
     parts: dict[str, set] = {"Train": set(train_df[id_column])}
     if val_df is not None:
@@ -140,18 +142,18 @@ def verify_zero_data_leakage(
             overlap = parts[a] & parts[b]
             if overlap:
                 raise DataLeakageError(
-                    f"RO RI DU LIEU! Co {len(overlap)} patient ID xuat hien o ca "
-                    f"{a} va {b}. Vi du: {sorted(overlap)[:5]}"
+                    f"DATA LEAKAGE DETECTED! {len(overlap)} patient ID(s) appear in both "
+                    f"{a} and {b}. Example: {sorted(overlap)[:5]}"
                 )
 
-    if verbose:  # pragma: no cover - chi in log
+    if verbose:  # pragma: no cover - log only
         sizes = " | ".join(f"{k}={len(v):,} IDs" for k, v in parts.items())
-        print(f"[OK] ZERO DATA LEAKAGE da duoc xac nhan ({sizes}).")
+        print(f"[OK] ZERO DATA LEAKAGE confirmed ({sizes}).")
     return True
 
 
 # --------------------------------------------------------------------------- #
-# 2. Bo tien xu ly (fit-on-train-only)
+# 2. Preprocessor (fit-on-train-only)
 # --------------------------------------------------------------------------- #
 def make_preprocessor(
     *,
@@ -159,27 +161,28 @@ def make_preprocessor(
     knn_neighbors: int = 5,
     scale: bool = True,
 ) -> ColumnTransformer:
-    """Tao `ColumnTransformer` tien xu ly du lieu bang/EHR.
+    """Build a `ColumnTransformer` for tabular/EHR preprocessing.
 
-    - `age`, `avg_glucose_level`, `bmi` : KNNImputer (hoac median) + StandardScaler.
-    - `hypertension`, `heart_disease`   : da la 0/1 -> giu nguyen (imputer median de an toan).
-    - `ever_married`                    : Binary encoding No=0 / Yes=1.
+    - `age`, `avg_glucose_level`, `bmi` : KNNImputer (or median) + StandardScaler.
+    - `hypertension`, `heart_disease`   : already 0/1 -> kept as-is (median
+      imputer added defensively).
+    - `ever_married`                    : binary encoding No=0 / Yes=1.
     - `gender`, `work_type`, `Residence_type`, `smoking_status` : One-Hot Encoding.
-      Gia tri `Unknown` cua `smoking_status` duoc giu lai nhu MOT HANG MUC RIENG
-      (missing-not-at-random: viec khong khai bao hut thuoc ban than da mang
-      thong tin), thay vi gan ghep vao 'never smoked'.
+      The `Unknown` value of `smoking_status` is kept as ITS OWN CATEGORY
+      (missing-not-at-random: not disclosing one's smoking status already
+      carries information), instead of being merged into 'never smoked'.
 
     Args:
-        numeric_imputer: "knn" hoac "median".
-        scale: co ap dung StandardScaler cho bien lien tuc hay khong (tat khi
-            dung mo hinh dua tren cay).
+        numeric_imputer: "knn" or "median".
+        scale: whether to apply StandardScaler to continuous features (turn
+            off for tree-based models).
     """
     if numeric_imputer == "knn":
         imputer: object = KNNImputer(n_neighbors=knn_neighbors, weights="distance")
     elif numeric_imputer == "median":
         imputer = SimpleImputer(strategy="median")
     else:
-        raise ValueError("numeric_imputer phai la 'knn' hoac 'median'.")
+        raise ValueError("numeric_imputer must be 'knn' or 'median'.")
 
     numeric_steps: list[tuple[str, object]] = [("imputer", imputer)]
     if scale:
@@ -227,11 +230,11 @@ def make_full_pipeline(
     scale: bool = True,
     random_state: int = config.RANDOM_STATE,
 ) -> ImbPipeline:
-    """Gop tien xu ly + SMOTE + mo hinh thanh MOT pipeline duy nhat.
+    """Combine preprocessing + SMOTE + model into a SINGLE pipeline.
 
-    Dat SMOTE BEN TRONG pipeline la diem mau chot chong ro ri du lieu: khi
-    pipeline duoc dua vao `cross_val_score` / `GridSearchCV`, `fit_resample`
-    chi duoc goi tren phan train cua tung fold.
+    Placing SMOTE INSIDE the pipeline is the key anti-leakage design choice:
+    when the pipeline is passed to `cross_val_score` / `GridSearchCV`,
+    `fit_resample` is only ever called on the train portion of each fold.
     """
     steps: list[tuple[str, object]] = [
         ("preprocessor", make_preprocessor(numeric_imputer=numeric_imputer, scale=scale))
@@ -245,28 +248,28 @@ def make_full_pipeline(
 
 
 def get_feature_names(preprocessor: ColumnTransformer) -> list[str]:
-    """Lay ten dac trung sau khi bien doi (phuc vu SHAP / feature importance)."""
+    """Get feature names after transformation (used for SHAP / feature importance)."""
     try:
         return list(preprocessor.get_feature_names_out())
-    except Exception:  # pragma: no cover - fallback cho phien ban sklearn cu
+    except Exception:  # pragma: no cover - fallback for older sklearn versions
         return [f"f{i}" for i in range(preprocessor.transform(pd.DataFrame()).shape[1])]
 
 
 def cv_splitter(
     n_splits: int = config.N_SPLITS, random_state: int = config.RANDOM_STATE
 ):
-    """Tra ve bo chia cross-validation dung chuan: phan tang + theo nhom."""
+    """Return the correct cross-validation splitter: stratified AND grouped."""
     from sklearn.model_selection import StratifiedGroupKFold
 
     return StratifiedGroupKFold(n_splits=n_splits, shuffle=True, random_state=random_state)
 
 
 def assert_no_fit_on_holdout(pipeline: ImbPipeline, X_holdout: pd.DataFrame) -> bool:
-    """Kiem tra pipeline da fit KHONG thay doi trang thai khi transform hold-out.
+    """Verify that a fitted pipeline's state does not change when transforming hold-out data.
 
-    Chup lai cac tham so da hoc (mean_/scale_ cua scaler, categories_ cua
-    encoder) truoc va sau khi goi `transform` tren tap hold-out: neu chung
-    thay doi thi da co hanh vi `fit` tren du lieu hold-out.
+    Captures the learned parameters (scaler's mean_/scale_, encoder's
+    categories_) before and after calling `transform` on the hold-out set: if
+    they change, a `fit` was mistakenly performed on hold-out data.
     """
     pre: ColumnTransformer = pipeline.named_steps["preprocessor"]
     before = _fitted_state(pre)
@@ -274,14 +277,14 @@ def assert_no_fit_on_holdout(pipeline: ImbPipeline, X_holdout: pd.DataFrame) -> 
     after = _fitted_state(pre)
     if before != after:
         raise DataLeakageError(
-            "RO RI DU LIEU! Trang thai cua preprocessor thay doi sau khi "
-            "transform tap hold-out -> co buoc fit tren du lieu hold-out."
+            "DATA LEAKAGE DETECTED! The preprocessor's state changed after "
+            "transforming the hold-out set -> a fit step ran on hold-out data."
         )
     return True
 
 
 def _fitted_state(preprocessor: ColumnTransformer) -> str:
-    """Serialize cac tham so da hoc cua preprocessor thanh chuoi so sanh duoc."""
+    """Serialize the preprocessor's learned parameters into a comparable string."""
     chunks: list[str] = []
     for name, transformer, _cols in preprocessor.transformers_:
         if not hasattr(transformer, "named_steps"):

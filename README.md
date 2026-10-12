@@ -1,71 +1,79 @@
 # Project N22 — Stroke Prediction using Machine Learning
 
-Du doan nguy co dot quy tu du lieu lam sang (Kaggle Stroke Prediction
-Dataset, 5,110 benh nhan), tuan thu ky luat **Zero Data Leakage** va uu tien
-**Recall/PR-AUC** thay vi Accuracy cho bai toan y khoa mat can bang lop
-nghiem trong (4.9% duong tinh). Chi tiet lap luan: [`docs/DETAILED_EXAM_REPORT.md`](docs/DETAILED_EXAM_REPORT.md).
+Predicting stroke risk from clinical data (Kaggle Stroke Prediction Dataset,
+5,110 patients), under a strict **Zero Data Leakage** discipline and
+prioritizing **Recall/PR-AUC** over Accuracy for a severely imbalanced
+medical classification problem (4.9% positive rate). Full rationale:
+[`docs/DETAILED_EXAM_REPORT.md`](docs/DETAILED_EXAM_REPORT.md).
 
-## Chay nhanh (local)
+## Run on Google Colab / Kaggle Notebooks (offline — no Kaggle token needed)
+The dataset is already bundled under `data/raw/`, so each notebook below
+clones this repo and installs dependencies in its first cell — no manual
+setup required.
+
+| Notebook | Colab | Kaggle |
+|---|---|---|
+| 01 - Exploratory Data Analysis | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/fossbk-spec/stroke-prediction/blob/main/notebooks/01_exploratory_data_analysis.ipynb) | [![Open In Kaggle](https://kaggle.com/static/images/open-in-kaggle.svg)](https://kaggle.com/kernels/welcome?src=https://github.com/fossbk-spec/stroke-prediction/blob/main/notebooks/01_exploratory_data_analysis.ipynb) |
+| 02 - Preprocessing & Imbalance | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/fossbk-spec/stroke-prediction/blob/main/notebooks/02_preprocessing_and_imbalance.ipynb) | [![Open In Kaggle](https://kaggle.com/static/images/open-in-kaggle.svg)](https://kaggle.com/kernels/welcome?src=https://github.com/fossbk-spec/stroke-prediction/blob/main/notebooks/02_preprocessing_and_imbalance.ipynb) |
+| 03 - Model Training & Evaluation | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/fossbk-spec/stroke-prediction/blob/main/notebooks/03_model_training_and_evaluation.ipynb) | [![Open In Kaggle](https://kaggle.com/static/images/open-in-kaggle.svg)](https://kaggle.com/kernels/welcome?src=https://github.com/fossbk-spec/stroke-prediction/blob/main/notebooks/03_model_training_and_evaluation.ipynb) |
+
+## Quick start (local)
 ```bash
-make setup      # tao .venv + cai dat requirements.txt
-make verify      # kiem tra data/raw/ dung 5,110 ban ghi / 249 ca duong tinh
-make test        # 72 unit test (bat buoc pass, dac biet tests/test_data_leakage.py)
-make eda         # xuat bang + bieu do EDA vao reports/
-make train        # huan luyen + so sanh 4 mo hinh, ket qua vao reports/
+make setup      # create .venv + install requirements.txt
+make verify      # check data/raw/ matches 5,110 records / 249 positive cases
+make test        # 72 unit tests (must pass, especially tests/test_data_leakage.py)
+make eda         # export EDA tables + figures into reports/
+make train        # train + compare 4 models, results written to reports/
 ```
 
-## Chay tren Google Colab (offline — khong can Kaggle token)
-Dataset da duoc dong goi san trong `data/raw/`. Mo bat ky notebook trong
-`notebooks/` tren Colab, cell dau tien se tu `git clone` repo nay va
-`pip install -r requirements.txt`.
-
-## Cau truc repository
+## Repository structure
 ```
 stroke-prediction/
 ├── data/
-│   ├── raw/                     # healthcare-dataset-stroke-data.csv (dong goi san)
-│   ├── processed/                # du lieu da tien xu ly (sinh ra, khong commit)
-│   └── SSoT_pdf_references/      # thu muc SSoT cho PDF bai bao (xem README trong thu muc)
+│   ├── raw/                     # healthcare-dataset-stroke-data.csv (bundled)
+│   ├── processed/                # preprocessed data (generated, not committed)
+│   └── SSoT_pdf_references/      # SSoT directory for paper PDFs (see its README)
 ├── notebooks/
 │   ├── 01_exploratory_data_analysis.ipynb
 │   ├── 02_preprocessing_and_imbalance.ipynb
 │   └── 03_model_training_and_evaluation.ipynb
 ├── src/
-│   ├── config.py           # hang so/schema trung tam
-│   ├── data_loader.py      # nap + validate schema + sinh du lieu gia lap
-│   ├── eda.py               # cac ham EDA tai su dung
-│   ├── preprocessing.py     # patient-level split, Pipeline chong ro ri du lieu
+│   ├── config.py           # central config/schema constants
+│   ├── data_loader.py      # load + validate schema + synthetic data generator
+│   ├── eda.py               # reusable EDA helpers
+│   ├── preprocessing.py     # patient-level split, leakage-safe Pipeline
 │   ├── models.py            # Logistic Regression ... Stacking Ensemble
 │   ├── evaluation.py        # Recall/PR-AUC/F2, threshold tuning, grouped CV
-│   ├── explainability.py    # SHAP, permutation importance, odds ratio
-│   └── train.py             # CLI huan luyen end-to-end
+│   ├── explainability.py    # SHAP, permutation importance, odds ratios
+│   └── train.py             # end-to-end training CLI
 ├── scripts/
-│   ├── download_data.py     # tai du lieu tu Kaggle (kagglehub/CLI/huong dan tay)
+│   ├── download_data.py     # fetch data from Kaggle (kagglehub/CLI/manual)
 │   └── run_eda.py
-├── tests/                    # 72 unit test, bao gom bo test chong ro ri du lieu
+├── tests/                    # 72 unit tests, including the anti-leakage suite
 ├── docs/
-│   ├── DETAILED_EXAM_REPORT.md   # bao cao loi giai chi tiet (nguon de bai)
-│   └── literature/                # tom tat 6 bai bao + dataset spec
+│   ├── DETAILED_EXAM_REPORT.md   # detailed exam-solution report (source brief)
+│   └── literature/                # 6 paper summaries + dataset spec
 └── .github/workflows/ci_cd_pipeline.yml
 ```
 
-## Ky luat Zero Data Leakage (bat buoc)
+## Zero Data Leakage discipline (mandatory)
 1. **Patient-level split**: `StratifiedGroupKFold(groups=id, stratify=stroke)` —
-   khong bao gio chia ngau nhien cap ban ghi.
-2. **Fit-on-train-only**: `KNNImputer`, `StandardScaler`, `OneHotEncoder`, `SMOTE`
-   chi `fit` tren train; validation/test chi `transform`.
-3. **SMOTE nam trong Pipeline** (`imblearn.pipeline.Pipeline`) — tranh loi ma
-   Dritsas & Trigka (2022) va Abed et al. (2022) mac phai (SMOTE truoc CV).
-4. Moi lan chay deu co the assert bang `verify_zero_data_leakage()` va
-   `assert_no_fit_on_holdout()` — xem `tests/test_data_leakage.py`.
+   never a naive random split at the record level.
+2. **Fit-on-train-only**: `KNNImputer`, `StandardScaler`, `OneHotEncoder`,
+   `SMOTE` are only `fit` on train; validation/test only call `.transform()`.
+3. **SMOTE lives inside the Pipeline** (`imblearn.pipeline.Pipeline`) —
+   avoiding the mistake made by Dritsas & Trigka (2022) and Abed et al.
+   (2022), who ran SMOTE before cross-validation.
+4. Every run can be asserted with `verify_zero_data_leakage()` and
+   `assert_no_fit_on_holdout()` — see `tests/test_data_leakage.py`.
 
-## Bo do do danh gia
-Thu tu uu tien: **Recall (Sensitivity) > PR-AUC > F2-score > ROC-AUC > Specificity**.
-Khong bao gio dung Accuracy don doc — xem Phan I/III cua
-[`docs/DETAILED_EXAM_REPORT.md`](docs/DETAILED_EXAM_REPORT.md) ve rui ro bat
-doi xung FN vs FP trong chan doan y khoa.
+## Evaluation metrics
+Priority order: **Recall (Sensitivity) > PR-AUC > F2-score > ROC-AUC > Specificity**.
+Accuracy alone is never used — see Parts I/III of
+[`docs/DETAILED_EXAM_REPORT.md`](docs/DETAILED_EXAM_REPORT.md) for the
+asymmetric FN vs. FP risk analysis in medical diagnosis.
 
-## Ket qua tham khao (tap Test, tune nguong tren Validation bang F2)
+## Reference results (Test set, threshold tuned on Validation via F2)
 | Model | Recall | PR-AUC | F2 | Precision | ROC-AUC |
 |---|---|---|---|---|---|
 | Stacking Ensemble | 0.84 | 0.12 | 0.38 | 0.12 | 0.77 |
@@ -73,8 +81,9 @@ doi xung FN vs FP trong chan doan y khoa.
 | Random Forest | 0.62 | 0.15 | 0.38 | 0.15 | 0.81 |
 | Logistic Regression | 0.42 | 0.18 | 0.34 | 0.20 | 0.86 |
 
-Chay lai de tai tao: `make train` (xem `reports/train_log.txt`).
+Reproduce with: `make train` (see `reports/train_log.txt`).
 
-## Giay phep
-Ma nguon: MIT (xem `LICENSE`). Du lieu Kaggle tuan theo giay phep rieng cua
-Kaggle; PDF bai bao thuoc ban quyen nha xuat ban (xem `data/SSoT_pdf_references/README.md`).
+## License
+Source code: MIT (see `LICENSE`). The Kaggle dataset follows Kaggle's own
+license; paper PDFs belong to their respective publishers (see
+`data/SSoT_pdf_references/README.md`).

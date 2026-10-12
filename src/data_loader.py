@@ -1,7 +1,7 @@
-"""Nap du lieu va kiem tra cau truc (schema validation).
+"""Data loading and schema validation.
 
-Muc tieu: moi notebook / script chi co MOT duong vao du lieu duy nhat, kem
-kiem tra tinh toan ven de phat hien som loi cau truc hoac loi kieu du lieu.
+Goal: every notebook / script uses a SINGLE data entry point, with integrity
+checks that catch structural or dtype errors early.
 """
 
 from __future__ import annotations
@@ -16,12 +16,12 @@ from src import config
 
 
 class SchemaValidationError(ValueError):
-    """Bo du lieu khong dung schema ky vong."""
+    """The dataset does not match the expected schema."""
 
 
 @dataclass
 class DatasetProfile:
-    """Thong tin mo ta nhanh mot bo du lieu da nap."""
+    """Quick descriptive summary of a loaded dataset."""
 
     n_rows: int
     n_cols: int
@@ -35,7 +35,7 @@ class DatasetProfile:
     def as_dict(self) -> dict[str, float | int]:
         return self.__dict__.copy()
 
-    def __str__(self) -> str:  # pragma: no cover - chi de in ra man hinh
+    def __str__(self) -> str:  # pragma: no cover - display only
         return (
             f"Rows={self.n_rows:,} | Cols={self.n_cols} | "
             f"Stroke=1: {self.n_positive:,} ({self.positive_rate:.2%}) | "
@@ -49,21 +49,21 @@ class DatasetProfile:
 def load_raw_data(
     csv_path: str | Path | None = None, *, validate: bool = True
 ) -> pd.DataFrame:
-    """Nap file CSV goc cua Kaggle Stroke Prediction Dataset.
+    """Load the raw Kaggle Stroke Prediction Dataset CSV.
 
     Args:
-        csv_path: duong dan tuy chon. Mac dinh dung `config.RAW_CSV_PATH`.
-        validate: co chay `validate_schema` ngay sau khi nap hay khong.
+        csv_path: optional path. Defaults to `config.RAW_CSV_PATH`.
+        validate: whether to run `validate_schema` right after loading.
 
     Raises:
-        FileNotFoundError: khi chua tai du lieu goc vao `data/raw/`.
+        FileNotFoundError: when the raw data has not been placed in `data/raw/`.
     """
     path = Path(csv_path) if csv_path is not None else config.RAW_CSV_PATH
     if not path.exists():
         raise FileNotFoundError(
-            f"Khong tim thay du lieu goc tai: {path}\n"
-            "Hay tai bo du lieu truoc:  python scripts/download_data.py\n"
-            "(hoac tai tay tu Kaggle: fedesoriano/stroke-prediction-dataset)"
+            f"Raw data not found at: {path}\n"
+            "Download it first:  python scripts/download_data.py\n"
+            "(or manually from Kaggle: fedesoriano/stroke-prediction-dataset)"
         )
 
     df = pd.read_csv(path)
@@ -74,7 +74,7 @@ def load_raw_data(
 
 
 def _coerce_dtypes(df: pd.DataFrame) -> pd.DataFrame:
-    """Chuan hoa kieu du lieu: `bmi` co the chua chuoi 'N/A' trong file goc."""
+    """Normalize dtypes: `bmi` may contain the literal string 'N/A' in the raw file."""
     df = df.copy()
     for col in config.NUMERIC_FEATURES:
         if col in df.columns:
@@ -86,32 +86,32 @@ def _coerce_dtypes(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def validate_schema(df: pd.DataFrame) -> None:
-    """Kiem tra schema bat buoc. Nem `SchemaValidationError` neu sai cau truc."""
+    """Validate the required schema. Raises `SchemaValidationError` on mismatch."""
     missing = [c for c in config.EXPECTED_COLUMNS if c not in df.columns]
     if missing:
-        raise SchemaValidationError(f"Thieu cac cot bat buoc: {missing}")
+        raise SchemaValidationError(f"Missing required columns: {missing}")
 
     if df.empty:
-        raise SchemaValidationError("Bo du lieu rong.")
+        raise SchemaValidationError("Dataset is empty.")
 
     target = df[config.TARGET_COLUMN].dropna().unique()
     invalid_target = sorted(set(np.asarray(target).tolist()) - {0, 1})
     if invalid_target:
         raise SchemaValidationError(
-            f"Cot nhan '{config.TARGET_COLUMN}' chua gia tri khong hop le: {invalid_target}"
+            f"Target column '{config.TARGET_COLUMN}' contains invalid values: {invalid_target}"
         )
 
     if df[config.ID_COLUMN].isna().any():
-        raise SchemaValidationError(f"Cot '{config.ID_COLUMN}' khong duoc chua gia tri rong.")
+        raise SchemaValidationError(f"Column '{config.ID_COLUMN}' must not contain nulls.")
 
     for col in config.BINARY_FEATURES:
         extra = sorted(set(df[col].dropna().unique().tolist()) - {0, 1})
         if extra:
-            raise SchemaValidationError(f"Cot '{col}' chi nhan 0/1, phat hien: {extra}")
+            raise SchemaValidationError(f"Column '{col}' must be 0/1 only, found: {extra}")
 
 
 def profile_dataset(df: pd.DataFrame) -> DatasetProfile:
-    """Tinh cac chi so mo ta nhanh phuc vu EDA va bao cao."""
+    """Compute quick descriptive statistics used in EDA and reporting."""
     n_rows = len(df)
     n_positive = int((df[config.TARGET_COLUMN] == 1).sum())
     smoking = df.get("smoking_status", pd.Series(dtype=object))
@@ -130,11 +130,11 @@ def profile_dataset(df: pd.DataFrame) -> DatasetProfile:
 def split_features_target(
     df: pd.DataFrame, *, keep_id: bool = False
 ) -> tuple[pd.DataFrame, pd.Series]:
-    """Tach ma tran dac trung X va vector nhan y.
+    """Split into the feature matrix X and the label vector y.
 
-    `id` bi loai bo khoi X theo mac dinh: day la ma dinh danh benh nhan, khong
-    mang y nghia lam sang. Giu lai `id` trong X se tao ra ro ri dac trung
-    (identifier leakage) va lam mo hinh "hoc thuoc long" benh nhan.
+    `id` is excluded from X by default: it is a patient identifier with no
+    clinical meaning. Keeping `id` in X would create identifier leakage and
+    let the model "memorize" individual patients.
     """
     cols = config.FEATURE_COLUMNS.copy()
     if keep_id:
@@ -147,17 +147,17 @@ def split_features_target(
 def make_synthetic_dataset(
     n_rows: int = 600, *, positive_rate: float = 0.049, random_state: int = config.RANDOM_STATE
 ) -> pd.DataFrame:
-    """Sinh bo du lieu gia lap dung schema Kaggle.
+    """Generate a synthetic dataset matching the Kaggle schema.
 
-    Dung cho unit test va CI (moi truong khong co file CSV goc). Du lieu nay
-    KHONG dung de bao cao ket qua khoa hoc.
+    Used for unit tests and CI (environments without the original CSV). This
+    data MUST NOT be used to report scientific results.
     """
     rng = np.random.default_rng(random_state)
     n_pos = max(2, int(round(n_rows * positive_rate)))
     y = np.zeros(n_rows, dtype=int)
     y[rng.choice(n_rows, size=n_pos, replace=False)] = 1
 
-    # Benh nhan duong tinh co xu huong lon tuoi / duong huyet cao hon.
+    # Positive patients tend to be older / have higher glucose levels.
     age = np.clip(rng.normal(np.where(y == 1, 68, 42), 15), 1, 95).round(1)
     glucose = np.clip(rng.normal(np.where(y == 1, 135, 104), 42), 55, 280).round(2)
     bmi = np.clip(rng.normal(np.where(y == 1, 30.5, 28.2), 7), 12, 65).round(1)
@@ -187,7 +187,7 @@ def make_synthetic_dataset(
         }
     )
 
-    # Gia lap ~3.9% thieu BMI giong du lieu that.
+    # Simulate ~3.9% missing BMI, matching the real dataset.
     missing_idx = rng.choice(n_rows, size=max(1, int(n_rows * 0.039)), replace=False)
     df.loc[missing_idx, "bmi"] = np.nan
     return df

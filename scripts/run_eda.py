@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Chay toan bo EDA va xuat bang CSV + bieu do vao `reports/`.
+"""Run the full EDA and export CSV tables + figures into `reports/`.
 
-Chay:
+Run:
     python scripts/run_eda.py
-    python scripts/run_eda.py --synthetic     # khi chua tai du lieu goc
+    python scripts/run_eda.py --synthetic     # when the raw data isn't downloaded yet
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ from src.data_loader import load_raw_data, make_synthetic_dataset, profile_datas
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--synthetic", action="store_true", help="Dung du lieu gia lap.")
+    parser.add_argument("--synthetic", action="store_true", help="Use synthetic data.")
     parser.add_argument("--output", default=str(config.REPORTS_DIR / "eda"))
     args = parser.parse_args(argv)
 
@@ -35,8 +35,8 @@ def main(argv: list[str] | None = None) -> int:
 
     figure_path = config.FIGURES_DIR / "eda_overview.png"
     eda.plot_eda_overview(df, save_path=figure_path)
-    print(f"Da luu bieu do: {figure_path}")
-    print(f"Da luu bang CSV: {args.output}")
+    print(f"Figure saved to: {figure_path}")
+    print(f"CSV tables saved to: {args.output}")
     return 0
 
 

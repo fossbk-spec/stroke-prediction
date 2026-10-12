@@ -1,14 +1,15 @@
 """Project N22 - Stroke Prediction using Machine Learning.
 
-Package `src` chua toan bo logic co the tai su dung cua du an:
+The `src` package holds all reusable project logic:
 
-- `config`         : hang so duong dan, ten cot, tham so mac dinh.
-- `data_loader`    : nap du lieu + kiem tra schema.
-- `eda`            : cac ham phan tich kham pha du lieu (tai su dung duoc).
-- `preprocessing`  : imputer / encoder / scaler / SMOTE theo ky luat Zero Data Leakage.
-- `models`         : khoi tao cac mo hinh baseline va nang cao.
-- `evaluation`     : Recall, PR-AUC, F-beta, confusion matrix, tim nguong toi uu.
-- `explainability` : SHAP / permutation importance cho tinh giai thich lam sang (XAI).
+- `config`         : path constants, column names, default parameters.
+- `data_loader`    : data loading + schema validation.
+- `eda`            : reusable exploratory data analysis helpers.
+- `preprocessing`  : imputer / encoder / scaler / SMOTE under the
+  Zero Data Leakage discipline.
+- `models`         : baseline and advanced model factories.
+- `evaluation`      : Recall, PR-AUC, F-beta, confusion matrix, threshold tuning.
+- `explainability`  : SHAP / permutation importance for clinical explainability (XAI).
 """
 
 __version__ = "1.0.0"

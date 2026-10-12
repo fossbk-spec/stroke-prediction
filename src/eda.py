@@ -1,8 +1,8 @@
-"""Cac ham EDA tai su dung duoc (yeu cau: chay end-to-end khong loi).
+"""Reusable EDA helpers (requirement: must run end-to-end without errors).
 
-Moi ham deu: (1) nhan DataFrame, (2) tra ve DataFrame/Figure, (3) khong sua
-du lieu goc (khong co side effect), (4) chay duoc ca khi thieu matplotlib
-backend do hinh (dung Agg).
+Every function: (1) takes a DataFrame, (2) returns a DataFrame/Figure,
+(3) never mutates the input data (no side effects), (4) works even without a
+display backend (uses Agg for plotting).
 """
 
 from __future__ import annotations
@@ -16,13 +16,13 @@ from src import config
 
 
 # --------------------------------------------------------------------------- #
-# 1. Bang mo ta
+# 1. Descriptive tables
 # --------------------------------------------------------------------------- #
 def missing_value_report(df: pd.DataFrame) -> pd.DataFrame:
-    """Bao cao gia tri khuyet thieu, bao gom ca gia tri 'Unknown' ngam dinh.
+    """Report missing values, including the implicit 'Unknown' sentinel value.
 
-    `smoking_status == 'Unknown'` khong phai NaN ve mat ky thuat nhung la
-    khuyet thieu ve mat ngu nghia -> phai duoc bao cao tach bach.
+    `smoking_status == 'Unknown'` is not technically NaN but is semantically
+    missing -> it must be reported separately.
     """
     rows = []
     for col in df.columns:
@@ -33,25 +33,25 @@ def missing_value_report(df: pd.DataFrame) -> pd.DataFrame:
         rows.append(
             {
                 "feature": col,
-                "dtype": str(df[col].dtype),
+                "dtype": str(series.dtype),
                 "n_missing": n_nan,
                 "pct_missing": n_nan / len(df) if len(df) else 0.0,
                 "n_unknown_token": n_unknown,
                 "pct_unknown_token": n_unknown / len(df) if len(df) else 0.0,
-                "n_unique": int(df[col].nunique(dropna=True)),
+                "n_unique": int(series.nunique(dropna=True)),
             }
         )
     return pd.DataFrame(rows).sort_values("pct_missing", ascending=False).reset_index(drop=True)
 
 
 def class_balance_report(df: pd.DataFrame) -> pd.DataFrame:
-    """Bang mat can bang lop o CA HAI cap do: ban ghi (sample) va benh nhan (patient).
+    """Class imbalance table at BOTH levels: sample (record) and patient.
 
-    Phan biet nay la bat buoc trong de bai: sample-level imbalance la lech nhan
-    giua cac ban ghi; patient-level imbalance la lech nhan giua cac benh nhan
-    duy nhat. Voi Kaggle dataset, moi `id` chi co 1 ban ghi nen hai con so
-    trung nhau — nhung kiem tra nay se phat hien ngay neu du lieu EHR that
-    co nhieu ban ghi/benh nhan.
+    This distinction is required by the assignment: sample-level imbalance is
+    the label skew across records; patient-level imbalance is the label skew
+    across unique patients. For the Kaggle dataset, every `id` has exactly 1
+    record so the two numbers coincide — but this check would immediately
+    flag a difference on real EHR data with multiple records per patient.
     """
     n = len(df)
     pos = int((df[config.TARGET_COLUMN] == 1).sum())
@@ -83,7 +83,7 @@ def class_balance_report(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def numeric_summary(df: pd.DataFrame, features: list[str] | None = None) -> pd.DataFrame:
-    """Thong ke mo ta bien lien tuc, tach theo nhan `stroke` de thay phan tach."""
+    """Descriptive statistics for continuous features, split by the `stroke` label."""
     features = features or config.NUMERIC_FEATURES
     frames = []
     for col in features:
@@ -95,7 +95,7 @@ def numeric_summary(df: pd.DataFrame, features: list[str] | None = None) -> pd.D
 
 
 def stroke_rate_by_category(df: pd.DataFrame, column: str) -> pd.DataFrame:
-    """Ty le dot quy theo tung hang muc cua mot bien phan loai."""
+    """Stroke rate broken down by each category of a categorical feature."""
     grouped = df.groupby(column, dropna=False)[config.TARGET_COLUMN]
     out = grouped.agg(n_samples="count", n_stroke="sum")
     out["stroke_rate"] = out["n_stroke"] / out["n_samples"]
@@ -105,7 +105,7 @@ def stroke_rate_by_category(df: pd.DataFrame, column: str) -> pd.DataFrame:
 def stroke_rate_by_age_band(
     df: pd.DataFrame, bins: tuple[float, ...] = (0, 20, 40, 50, 60, 70, 80, 120)
 ) -> pd.DataFrame:
-    """Ty le dot quy theo nhom tuoi — xac nhan gia thuyet dich te 60-80 tuoi."""
+    """Stroke rate by age band — confirms the 60-80 age-group epidemiological hypothesis."""
     tmp = df[["age", config.TARGET_COLUMN]].copy()
     tmp["age_band"] = pd.cut(tmp["age"], bins=list(bins), right=False)
     grouped = tmp.groupby("age_band", observed=True)[config.TARGET_COLUMN]
@@ -115,16 +115,16 @@ def stroke_rate_by_age_band(
 
 
 def glucose_risk_strata(df: pd.DataFrame) -> pd.DataFrame:
-    """Phan tang nguy co theo nguong duong huyet lam sang (ADA).
+    """Risk stratification by clinical glucose thresholds (ADA).
 
-    <100: binh thuong | 100-125: tien dai thao duong | 126-199: dai thao duong
-    | >=200: tang duong huyet nang.
+    <100: normal | 100-125: prediabetes | 126-199: diabetes
+    | >=200: severe hyperglycemia.
     """
     tmp = df[["avg_glucose_level", config.TARGET_COLUMN]].copy()
     tmp["glucose_stratum"] = pd.cut(
         tmp["avg_glucose_level"],
         bins=[0, 100, 126, 200, np.inf],
-        labels=["<100 (binh thuong)", "100-125 (tien DTD)", "126-199 (DTD)", ">=200 (nang)"],
+        labels=["<100 (normal)", "100-125 (prediabetes)", "126-199 (diabetes)", ">=200 (severe)"],
         right=False,
     )
     grouped = tmp.groupby("glucose_stratum", observed=True)[config.TARGET_COLUMN]
@@ -136,7 +136,7 @@ def glucose_risk_strata(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def correlation_with_target(df: pd.DataFrame) -> pd.DataFrame:
-    """Tuong quan point-biserial giua bien so va nhan `stroke`."""
+    """Point-biserial correlation between each feature and the `stroke` label."""
     numeric = config.NUMERIC_FEATURES + config.BINARY_FEATURES
     corr = (
         df[numeric + [config.TARGET_COLUMN]]
@@ -153,10 +153,10 @@ def correlation_with_target(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def demographic_bias_report(df: pd.DataFrame) -> pd.DataFrame:
-    """Kiem tra thien vi nhan khau hoc tren cac truc gender / residence / work.
+    """Check demographic bias across the gender / residence / work axes.
 
-    Muc dich: phat hien nhom bi dai dien thieu (under-represented) — mo hinh
-    se hoat dong kem tren nhung nhom nay khi trien khai thuc te.
+    Purpose: detect under-represented groups — the model will perform worse
+    on these groups once deployed in practice.
     """
     frames = []
     for col in ["gender", "Residence_type", "work_type", "smoking_status", "ever_married"]:
@@ -168,10 +168,10 @@ def demographic_bias_report(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def run_full_eda(df: pd.DataFrame, output_dir: str | Path | None = None) -> dict[str, pd.DataFrame]:
-    """Chay toan bo EDA end-to-end, tra ve dict cac bang ket qua.
+    """Run the full EDA end-to-end, returning a dict of result tables.
 
     Args:
-        output_dir: neu duoc cung cap, luu tung bang thanh CSV de dua vao bao cao.
+        output_dir: if given, save each table as a CSV for inclusion in the report.
     """
     tables: dict[str, pd.DataFrame] = {
         "missing_values": missing_value_report(df),
@@ -203,10 +203,10 @@ def run_full_eda(df: pd.DataFrame, output_dir: str | Path | None = None) -> dict
 
 
 # --------------------------------------------------------------------------- #
-# 2. Bieu do
+# 2. Plots
 # --------------------------------------------------------------------------- #
 def plot_eda_overview(df: pd.DataFrame, save_path: str | Path | None = None):  # pragma: no cover
-    """Ve bang hinh tong quan 4 o: can bang lop, tuoi, duong huyet, BMI."""
+    """Plot a 2x2 overview figure: class balance, age, glucose, BMI."""
     import matplotlib
 
     matplotlib.use("Agg", force=False)
@@ -215,27 +215,27 @@ def plot_eda_overview(df: pd.DataFrame, save_path: str | Path | None = None):  #
     fig, axes = plt.subplots(2, 2, figsize=(11, 8))
 
     counts = df[config.TARGET_COLUMN].value_counts().sort_index()
-    axes[0, 0].bar(["Khong dot quy (0)", "Dot quy (1)"], counts.values, color=["#4C78A8", "#E45756"])
+    axes[0, 0].bar(["No stroke (0)", "Stroke (1)"], counts.values, color=["#4C78A8", "#E45756"])
     for i, v in enumerate(counts.values):
         axes[0, 0].text(i, v, f"{v:,}\n({v / len(df):.1%})", ha="center", va="bottom", fontsize=9)
-    axes[0, 0].set_title("Mat can bang lop")
+    axes[0, 0].set_title("Class imbalance")
     axes[0, 0].set_ylim(0, counts.max() * 1.2)
 
     for label, color in ((0, "#4C78A8"), (1, "#E45756")):
         subset = df.loc[df[config.TARGET_COLUMN] == label, "age"].dropna()
         axes[0, 1].hist(subset, bins=30, alpha=0.6, label=f"stroke={label}", color=color, density=True)
-    axes[0, 1].set_title("Phan bo tuoi theo nhan")
+    axes[0, 1].set_title("Age distribution by label")
     axes[0, 1].set_xlabel("age")
     axes[0, 1].legend(fontsize=8)
 
     bands = stroke_rate_by_age_band(df)
     axes[1, 0].bar(bands["age_band"].astype(str), bands["stroke_rate"], color="#E45756")
-    axes[1, 0].set_title("Ty le dot quy theo nhom tuoi")
+    axes[1, 0].set_title("Stroke rate by age band")
     axes[1, 0].tick_params(axis="x", rotation=45, labelsize=8)
 
     strata = glucose_risk_strata(df)
     axes[1, 1].bar(strata["glucose_stratum"].astype(str), strata["stroke_rate"], color="#F58518")
-    axes[1, 1].set_title("Ty le dot quy theo phan tang duong huyet")
+    axes[1, 1].set_title("Stroke rate by glucose stratum")
     axes[1, 1].tick_params(axis="x", rotation=30, labelsize=8)
 
     fig.tight_layout()

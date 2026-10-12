@@ -21,9 +21,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 ---
-LUU Y VE DU LIEU: Giay phep nay ap dung cho MA NGUON trong repository.
-Bo du lieu Kaggle Stroke Prediction Dataset (fedesoriano) tuan theo giay phep
-rieng cua Kaggle (Educational / Research License) va KHONG duoc phan phoi kem
-repository nay. Cac tep PDF bai bao trong `data/SSoT_pdf_references/` thuoc
-ban quyen cua nha xuat ban tuong ung, chi luu tru cuc bo phuc vu truy xuat
-nguon goc (traceability), khong commit len repository cong khai.
+NOTE ON DATA: This license applies to the SOURCE CODE in this repository.
+The Kaggle Stroke Prediction Dataset (fedesoriano), bundled under
+`data/raw/` purely so notebooks run offline on Colab/Kaggle, remains subject
+to Kaggle's own license (Educational / Research License). Paper PDFs under
+`data/SSoT_pdf_references/` belong to their respective publishers and are
+kept locally for traceability only — never commit them to a public repository.

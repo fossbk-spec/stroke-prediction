@@ -1,4 +1,4 @@
-"""Fixture dung chung cho toan bo test suite."""
+"""Shared fixtures for the whole test suite."""
 
 from __future__ import annotations
 
@@ -14,16 +14,16 @@ from src.data_loader import make_synthetic_dataset  # noqa: E402
 
 @pytest.fixture(scope="session")
 def synthetic_df():
-    """Bo du lieu gia lap 800 ban ghi, dung schema Kaggle."""
+    """An 800-row synthetic dataset matching the Kaggle schema."""
     return make_synthetic_dataset(n_rows=800, random_state=7)
 
 
 @pytest.fixture(scope="session")
 def multi_record_df(synthetic_df):
-    """Bo du lieu gia lap trong do MOI benh nhan co 2-3 ban ghi.
+    """A synthetic dataset where EVERY patient has 2-3 records.
 
-    Dung de kiem tra ky luat patient-level splitting: neu chia ngau nhien theo
-    ban ghi, cung mot benh nhan se roi vao ca train va test.
+    Used to test the patient-level splitting discipline: with a naive random
+    split by record, the same patient would end up in both train and test.
     """
     import pandas as pd
 

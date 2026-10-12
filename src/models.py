@@ -1,18 +1,19 @@
-"""Khoi tao cac mo hinh: baseline, cost-sensitive va ensemble nang cao.
+"""Model factories: baseline, cost-sensitive, and advanced ensemble models.
 
-Triet ly chon mo hinh cho bai toan nay:
+Model-selection rationale for this problem:
 
-- **Logistic Regression** (baseline bat buoc): tuyen tinh, he so co the doc
-  truc tiep thanh odds ratio -> rat de bien luan lam sang.
-- **Cost-sensitive learning** (`class_weight="balanced"`): phuong phap chong
-  mat can bang KHONG sinh du lieu gia, nen khong co rui ro "SMOTE leakage".
-  Day la doi chung quan trong cho nhanh dung SMOTE.
-- **Random Forest / Gradient Boosting / XGBoost**: nam bat tuong tac phi tuyen
-  (vi du age x hypertension) ma mo hinh tuyen tinh bo sot.
-- **Stacking Ensemble**: khoang trong duoc chi ra trong ma tran y van
-  (N22 Team 2025 chua thu nghiem) — base learners + meta-learner Logistic
-  Regression, lap lai kien truc cua Dritsas & Trigka (2022) nhung voi giao
-  thuc chia du lieu sach.
+- **Logistic Regression** (mandatory baseline): linear, coefficients can be
+  read directly as odds ratios -> very easy to discuss clinically.
+- **Cost-sensitive learning** (`class_weight="balanced"`): an imbalance
+  countermeasure that does NOT synthesize fake data, so it carries no
+  "SMOTE leakage" risk. This is an important control arm against the
+  SMOTE-based branch.
+- **Random Forest / Gradient Boosting / XGBoost**: capture nonlinear
+  interactions (e.g. age x hypertension) that a linear model misses.
+- **Stacking Ensemble**: addresses a gap called out in the literature matrix
+  (the N22 Team 2025 baseline had not tried advanced stacking) — base
+  learners + a Logistic Regression meta-learner, mirroring the Dritsas &
+  Trigka (2022) architecture but with a clean data-splitting protocol.
 """
 
 from __future__ import annotations
@@ -33,9 +34,9 @@ from sklearn.tree import DecisionTreeClassifier
 from src import config
 
 # --------------------------------------------------------------------------- #
-# XGBoost la phu thuoc TUY CHON (can OpenMP/libomp tren macOS).
+# XGBoost is an OPTIONAL dependency (needs OpenMP/libomp on macOS).
 # --------------------------------------------------------------------------- #
-try:  # pragma: no cover - phu thuoc moi truong
+try:  # pragma: no cover - environment-dependent
     from xgboost import XGBClassifier
 
     XGBOOST_AVAILABLE = True
@@ -44,13 +45,13 @@ except Exception:  # pragma: no cover
 
 
 def get_model(name: str, *, class_weight: str | None = None, **overrides: Any):
-    """Tra ve mot estimator theo ten.
+    """Return an estimator by name.
 
     Args:
-        name: mot trong cac khoa cua `available_models()`.
-        class_weight: "balanced" de bat cost-sensitive learning (neu mo hinh
-            ho tro). Khong dung dong thoi voi SMOTE tru khi co chu dich.
-        **overrides: ghi de sieu tham so mac dinh.
+        name: one of the keys in `available_models()`.
+        class_weight: "balanced" to enable cost-sensitive learning (if the
+            model supports it). Do not combine with SMOTE unless intentional.
+        **overrides: override default hyperparameters.
     """
     name = name.lower().replace("-", "_")
     rs = config.RANDOM_STATE
@@ -95,16 +96,16 @@ def get_model(name: str, *, class_weight: str | None = None, **overrides: Any):
         "stacking": lambda: build_stacking_ensemble(class_weight=class_weight),
     }
     if name not in builders:
-        raise KeyError(f"Mo hinh '{name}' khong ton tai. Hop le: {sorted(builders)}")
+        raise KeyError(f"Model '{name}' does not exist. Valid options: {sorted(builders)}")
     return builders[name]()
 
 
 def _build_xgboost(**overrides: Any):
-    """Khoi tao XGBoost; nem loi ro rang neu moi truong chua co libomp."""
+    """Instantiate XGBoost; raise a clear error if libomp is missing."""
     if not XGBOOST_AVAILABLE:  # pragma: no cover
         raise ImportError(
-            "Khong nap duoc xgboost (thieu OpenMP runtime). "
-            "Tren macOS: `brew install libomp`. Hoac dung 'gradient_boosting' thay the."
+            "Failed to load xgboost (missing OpenMP runtime). "
+            "On macOS: `brew install libomp`. Or use 'gradient_boosting' instead."
         )
     params = {
         "n_estimators": 400,
@@ -121,10 +122,10 @@ def _build_xgboost(**overrides: Any):
 
 
 def build_stacking_ensemble(*, class_weight: str | None = None) -> StackingClassifier:
-    """Stacking Ensemble: base learners da dang + meta-learner Logistic Regression.
+    """Stacking Ensemble: diverse base learners + Logistic Regression meta-learner.
 
-    `cv=5` ben trong `StackingClassifier` dam bao meta-features duoc sinh ra
-    bang out-of-fold prediction => khong ro ri nhan tu base sang meta.
+    The internal `cv=5` in `StackingClassifier` ensures meta-features are
+    generated from out-of-fold predictions => no leakage from base to meta.
     """
     base_estimators = [
         ("rf", get_model("random_forest", class_weight=class_weight)),
@@ -142,7 +143,7 @@ def build_stacking_ensemble(*, class_weight: str | None = None) -> StackingClass
 
 
 def available_models() -> list[str]:
-    """Danh sach cac mo hinh su dung duoc trong moi truong hien tai."""
+    """List of models usable in the current environment."""
     names = [
         "logistic_regression",
         "decision_tree",

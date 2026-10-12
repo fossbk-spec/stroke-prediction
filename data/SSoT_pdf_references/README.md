@@ -1,16 +1,16 @@
 # Single Source of Truth (SSoT) - PDF References
 
-Thu muc nay luu toan bo file PDF goc cua cac bai bao duoc trich dan trong
-`docs/literature/` va `docs/DETAILED_EXAM_REPORT.md`.
+This directory stores the original PDF files of every paper cited in
+`docs/literature/` and `docs/DETAILED_EXAM_REPORT.md`.
 
-## Quy uoc dat ten file
+## File naming convention
 ```
-[Nam]_[HoTacGia]_[TenBaiBao_VietTat].pdf
+[Year]_[AuthorLastName]_[PaperTitle_Abbrev].pdf
 ```
-Vi du: `2021_Yang_AccuratePredictionStrokeHypertensive.pdf`
+Example: `2021_Yang_AccuratePredictionStrokeHypertensive.pdf`
 
-## Danh sach can bo sung (chua commit PDF vi ban quyen nha xuat ban)
-| File can tai | Nguon |
+## Files to add (not committed here due to publisher copyright)
+| File to download | Source |
 |---|---|
 | `2021_Yang_AccuratePredictionStrokeHypertensive.pdf` | JMIR Med Inform 2021;9(11):e30277 |
 | `2021_Chun_StrokeRiskPredictionCKB.pdf` | JAMIA 28(8), 2021 |
@@ -19,6 +19,7 @@ Vi du: `2021_Yang_AccuratePredictionStrokeHypertensive.pdf`
 | `2025_Akinwumi_EvaluatingMLStrokePrediction.pdf` | Front. Neurol. 16:1668420 |
 | `2025_Soladoye_MLTechniquesStrokeSystematicReview.pdf` | Int J Med Inform 203 (2025) 106041 |
 
-**Chu y**: Khong commit PDF co ban quyen len repository cong khai. Moi thanh
-vien tu tai PDF va dat vao thu muc nay (da duoc `.gitignore`), chi commit
-file tom tat (`docs/literature/*.md`) va bang ma tran y van.
+**Note**: Do not commit copyrighted PDFs to a public repository. Each team
+member downloads the PDFs themselves and places them in this directory
+(already covered by `.gitignore`) — only the summary files
+(`docs/literature/*.md`) and the literature matrix are committed.

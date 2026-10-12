@@ -4,11 +4,11 @@ target-version = "py310"
 [lint]
 select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM"]
 ignore = [
-    "E501",   # do dai dong da duoc formatter xu ly
-    "B008",   # goi ham trong gia tri mac dinh (pho bien voi sklearn)
+    "E501",   # line length is handled by the formatter
+    "B008",   # function call in a default argument (common with sklearn)
 ]
 
 [lint.per-file-ignores]
-"tests/*" = ["E402"]        # conftest can sua sys.path truoc khi import
+"tests/*" = ["E402"]        # conftest needs to patch sys.path before importing
 "scripts/*" = ["E402"]
 "notebooks/*" = ["E402"]

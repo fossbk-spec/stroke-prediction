@@ -1,4 +1,4 @@
-"""Unit test cho nap du lieu va kiem tra schema."""
+"""Unit tests for data loading and schema validation."""
 
 from __future__ import annotations
 
@@ -18,36 +18,36 @@ from src.data_loader import (
 
 class TestSchemaValidation:
     def test_valid_dataset_passes(self, synthetic_df):
-        validate_schema(synthetic_df)  # khong nem loi
+        validate_schema(synthetic_df)  # must not raise
 
     def test_missing_column_is_rejected(self, synthetic_df):
-        with pytest.raises(SchemaValidationError, match="Thieu cac cot"):
+        with pytest.raises(SchemaValidationError, match="Missing required"):
             validate_schema(synthetic_df.drop(columns=["bmi"]))
 
     def test_invalid_target_value_is_rejected(self, synthetic_df):
         broken = synthetic_df.copy()
         broken.loc[0, config.TARGET_COLUMN] = 2
-        with pytest.raises(SchemaValidationError, match="khong hop le"):
+        with pytest.raises(SchemaValidationError, match="invalid values"):
             validate_schema(broken)
 
     def test_empty_dataset_is_rejected(self, synthetic_df):
-        with pytest.raises(SchemaValidationError, match="rong"):
+        with pytest.raises(SchemaValidationError, match="empty"):
             validate_schema(synthetic_df.iloc[0:0])
 
     def test_null_id_is_rejected(self, synthetic_df):
         broken = synthetic_df.copy().astype({config.ID_COLUMN: "float"})
         broken.loc[0, config.ID_COLUMN] = np.nan
-        with pytest.raises(SchemaValidationError, match="khong duoc chua gia tri rong"):
+        with pytest.raises(SchemaValidationError, match="must not contain nulls"):
             validate_schema(broken)
 
 
 class TestLoadRawData:
     def test_missing_file_gives_actionable_message(self, tmp_path):
         with pytest.raises(FileNotFoundError, match="download_data.py"):
-            load_raw_data(tmp_path / "khong-ton-tai.csv")
+            load_raw_data(tmp_path / "does-not-exist.csv")
 
     def test_bmi_na_string_is_coerced_to_nan(self, tmp_path, synthetic_df):
-        """File goc cua Kaggle dung chuoi 'N/A' cho BMI -> phai thanh NaN."""
+        """The original Kaggle file uses the literal string 'N/A' for BMI -> must become NaN."""
         df = synthetic_df.copy()
         df["bmi"] = df["bmi"].astype(object)
         df.loc[0, "bmi"] = "N/A"
