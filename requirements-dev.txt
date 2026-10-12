@@ -1,0 +1,4 @@
+-r requirements.txt
+
+ruff>=0.5          # linter + formatter
+nbstripout>=0.7    # xoa output notebook truoc khi commit

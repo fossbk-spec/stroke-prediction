@@ -1,0 +1,29 @@
+# Project N22 - Stroke Prediction using Machine Learning
+# Cai dat:  pip install -r requirements.txt
+
+# --- Nen tang xu ly du lieu ---
+pandas>=2.0
+numpy>=1.24
+scipy>=1.11
+
+# --- Hoc may ---
+scikit-learn>=1.4           # Pipeline, ColumnTransformer, StratifiedGroupKFold
+imbalanced-learn>=0.12      # SMOTE + imblearn.pipeline (chong SMOTE leakage)
+
+# --- Truc quan hoa ---
+matplotlib>=3.7
+seaborn>=0.13
+
+# --- Giai thich mo hinh (XAI) ---
+shap>=0.44
+
+# --- Kiem thu ---
+pytest>=8.0
+
+# --- Notebook ---
+jupyter>=1.0
+ipykernel>=6.25
+
+# --- Tuy chon ---
+# xgboost>=2.0              # macOS can them: brew install libomp
+# kagglehub>=0.3            # tai du lieu tu dong tu Kaggle
