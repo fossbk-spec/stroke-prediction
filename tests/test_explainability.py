@@ -1,4 +1,4 @@
-"""Unit test cho module XAI (tinh giai thich lam sang)."""
+"""Unit tests for the XAI (clinical explainability) module."""
 
 from __future__ import annotations
 
@@ -43,14 +43,14 @@ class TestOddsRatios:
         assert "significant" in table.columns
 
     def test_age_increases_risk(self, fitted_linear):
-        """Kiem chung lam sang: tuoi phai lam TANG nguy co (OR > 1)."""
+        """Clinical sanity check: age must INCREASE risk (OR > 1)."""
         pipeline, _X, _y = fitted_linear
         table = explainability.logistic_odds_ratios(pipeline).set_index("feature")
         assert table.loc["age", "odds_ratio"] > 1.0
 
     def test_tree_model_rejected_with_clear_message(self, fitted_tree):
         pipeline, _X, _y = fitted_tree
-        with pytest.raises(AttributeError, match="tuyen tinh"):
+        with pytest.raises(AttributeError, match="linear model"):
             explainability.logistic_odds_ratios(pipeline)
 
 
@@ -66,7 +66,7 @@ class TestFeatureImportance:
             explainability.tree_feature_importance(pipeline)
 
     def test_permutation_importance_on_original_features(self, fitted_linear):
-        """Permutation importance phai tra ve dung cac dac trung GOC."""
+        """Permutation importance must return the ORIGINAL feature names."""
         pipeline, X, y = fitted_linear
         table = explainability.permutation_feature_importance(pipeline, X, y, n_repeats=3)
         assert set(table["feature"]) == set(X.columns)
@@ -89,4 +89,4 @@ class TestShap:
         pipeline, X, _y = fitted_tree
         table = explainability.explain_single_patient(pipeline, X, index=0, top_k=5)
         assert len(table) == 5
-        assert set(table["effect"]) <= {"tang nguy co", "giam nguy co"}
+        assert set(table["effect"]) <= {"increases risk", "decreases risk"}

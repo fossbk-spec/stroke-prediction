@@ -1,11 +1,11 @@
-"""Cau hinh trung tam cho toan bo du an (Single Source of Truth cho tham so)."""
+"""Central configuration (single source of truth for project parameters)."""
 
 from __future__ import annotations
 
 from pathlib import Path
 
 # --------------------------------------------------------------------------- #
-# Duong dan
+# Paths
 # --------------------------------------------------------------------------- #
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -20,7 +20,7 @@ FIGURES_DIR = REPORTS_DIR / "figures"
 RAW_CSV_PATH = RAW_DATA_DIR / "healthcare-dataset-stroke-data.csv"
 
 # --------------------------------------------------------------------------- #
-# Schema bo du lieu Kaggle Stroke Prediction (fedesoriano) - 5,110 x 12
+# Kaggle Stroke Prediction Dataset schema (fedesoriano) - 5,110 x 12
 # --------------------------------------------------------------------------- #
 ID_COLUMN = "id"
 TARGET_COLUMN = "stroke"
@@ -34,7 +34,7 @@ FEATURE_COLUMNS = (
     NUMERIC_FEATURES + BINARY_FEATURES + ORDINAL_BINARY_FEATURES + NOMINAL_FEATURES
 )
 
-# Thu tu cot DUNG NHU trong file CSV goc cua Kaggle (dung cho schema validation).
+# Column order EXACTLY as in the original Kaggle CSV (used for schema validation).
 EXPECTED_COLUMNS = [
     ID_COLUMN,
     "gender",
@@ -50,22 +50,22 @@ EXPECTED_COLUMNS = [
     TARGET_COLUMN,
 ]
 
-# Ky vong ve kich thuoc / chat luong du lieu goc (dung cho data validation)
+# Expected raw-data size / quality (used for data validation)
 EXPECTED_N_ROWS = 5110
 EXPECTED_N_POSITIVE = 249
 EXPECTED_N_MISSING_BMI = 201
 EXPECTED_N_UNKNOWN_SMOKING = 1544
 
 # --------------------------------------------------------------------------- #
-# Tham so thuc nghiem
+# Experiment parameters
 # --------------------------------------------------------------------------- #
 RANDOM_STATE = 42
-N_SPLITS = 5          # So fold cho StratifiedGroupKFold
-TEST_SIZE = 0.2       # Ty le tap test (hold-out cap do benh nhan)
-VAL_SIZE = 0.2        # Ty le tap validation (tach tu phan con lai)
+N_SPLITS = 5          # Number of folds for StratifiedGroupKFold
+TEST_SIZE = 0.2       # Test set fraction (patient-level hold-out)
+VAL_SIZE = 0.2        # Validation set fraction (carved out of the remainder)
 
-# Do do uu tien trong bai toan y khoa: FN >> FP  =>  beta = 2
+# Metric priority for the clinical problem: FN >> FP  =>  beta = 2
 F_BETA = 2.0
 
-# Nguong xac suat mac dinh truoc khi toi uu hoa theo F-beta
+# Default probability threshold, before F-beta-based tuning
 DEFAULT_THRESHOLD = 0.5

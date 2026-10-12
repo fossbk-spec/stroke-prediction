@@ -1,4 +1,4 @@
-# --- Du lieu (KHONG commit du lieu benh nhan / du lieu co giay phep rieng) ---
+# --- Data (only the bundled raw CSV is tracked; everything else generated/licensed is not) ---
 data/raw/*
 !data/raw/healthcare-dataset-stroke-data.csv
 !data/raw/README.md
@@ -7,7 +7,7 @@ data/processed/*
 !data/processed/.gitkeep
 data/SSoT_pdf_references/*.pdf
 
-# --- Ket qua sinh ra tu ma nguon ---
+# --- Results generated from source code ---
 reports/figures/*.png
 reports/*.csv
 reports/*.json
@@ -25,15 +25,15 @@ __pycache__/
 .coverage
 htmlcov/
 
-# --- Moi truong ao ---
+# --- Virtual environment ---
 .venv/
 venv/
 env/
 
-# --- Notebook ---
+# --- Notebooks ---
 .ipynb_checkpoints/
 
-# --- He dieu hanh / IDE ---
+# --- OS / IDE ---
 .DS_Store
 .vscode/
 .idea/

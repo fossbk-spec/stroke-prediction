@@ -1,10 +1,11 @@
 # data/raw/
 
-Chua `healthcare-dataset-stroke-data.csv` (Kaggle Stroke Prediction Dataset,
-fedesoriano, 5,110 x 12). File nay DA DUOC DONG GOI SAN trong repo de notebook
-chay duoc offline tren Google Colab / local — khong can Kaggle API token.
+Contains `healthcare-dataset-stroke-data.csv` (Kaggle Stroke Prediction
+Dataset, fedesoriano, 5,110 x 12). This file is BUNDLED in the repo so that
+notebooks run offline on Google Colab / Kaggle Notebooks / local — no Kaggle
+API token required.
 
-Neu file bi xoa, tai lai bang:
+If the file is removed, re-download it with:
 ```
 python scripts/download_data.py
 ```

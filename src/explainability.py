@@ -1,13 +1,13 @@
-"""Tinh giai thich lam sang (XAI): SHAP, permutation importance, odds ratio.
+"""Clinical explainability (XAI): SHAP, permutation importance, odds ratios.
 
-Khoang trong y van da chi ra: cac mo hinh ensemble dat AUC cao nhung la
-"hop den", khien bac si khong tin tuong de ra quyet dinh du phong. Module nay
-cung cap 3 lop giai thich:
+The literature review surfaced a gap: ensemble models reach high AUC but
+remain "black boxes", which makes clinicians reluctant to act on them. This
+module provides three layers of explanation:
 
-1. **Toan cuc, mo hinh-bat-ky**: permutation importance tren tap test.
-2. **Toan cuc + cuc bo, cho mo hinh cay**: SHAP values.
-3. **Lam sang truc tiep**: odds ratio tu Logistic Regression — dai luong ma
-   gioi y khoa quen doc nhat.
+1. **Global, model-agnostic**: permutation importance on the test set.
+2. **Global + local, for tree models**: SHAP values.
+3. **Direct clinical interpretation**: odds ratios from Logistic Regression —
+   the quantity most familiar to a medical audience.
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ from src import config
 
 
 def _transformed_frame(pipeline, X: pd.DataFrame) -> pd.DataFrame:
-    """Ap dung buoc tien xu ly cua pipeline va tra ve DataFrame co ten cot."""
+    """Apply the pipeline's preprocessing step and return a named DataFrame."""
     pre = pipeline.named_steps["preprocessor"]
     matrix = pre.transform(X)
     try:
@@ -40,13 +40,13 @@ def permutation_feature_importance(
     n_repeats: int = 10,
     random_state: int = config.RANDOM_STATE,
 ) -> pd.DataFrame:
-    """Permutation importance tren DAC TRUNG GOC (truoc one-hot).
+    """Permutation importance on the ORIGINAL features (before one-hot encoding).
 
-    Do tren dac trung goc giup bac si doc truc tiep ("smoking_status quan
-    trong"), thay vi doc 4 cot one-hot roi rac.
+    Measuring on the original features lets a clinician read the result
+    directly ("smoking_status matters"), instead of scattered one-hot columns.
 
-    `scoring="average_precision"` (PR-AUC) duoc chon thay vi accuracy vi
-    accuracy gan nhu khong thay doi tren du lieu mat can bang.
+    `scoring="average_precision"` (PR-AUC) is used instead of accuracy
+    because accuracy barely moves on imbalanced data.
     """
     from sklearn.inspection import permutation_importance
 
@@ -67,12 +67,12 @@ def permutation_feature_importance(
 
 
 def tree_feature_importance(pipeline) -> pd.DataFrame:
-    """Feature importance noi tai cua mo hinh cay (Gini / gain)."""
+    """Intrinsic feature importance of a tree model (Gini / gain)."""
     model = pipeline.named_steps["model"]
     if not hasattr(model, "feature_importances_"):
         raise AttributeError(
-            f"{type(model).__name__} khong co `feature_importances_`. "
-            "Dung `permutation_feature_importance` hoac `logistic_odds_ratios`."
+            f"{type(model).__name__} has no `feature_importances_`. "
+            "Use `permutation_feature_importance` or `logistic_odds_ratios` instead."
         )
     pre = pipeline.named_steps["preprocessor"]
     names = list(pre.get_feature_names_out())
@@ -86,21 +86,22 @@ def tree_feature_importance(pipeline) -> pd.DataFrame:
 def logistic_odds_ratios(
     pipeline, X: pd.DataFrame | None = None, *, alpha: float = 0.05
 ) -> pd.DataFrame:
-    """Chuyen he so Logistic Regression thanh Odds Ratio = exp(beta).
+    """Convert Logistic Regression coefficients to Odds Ratio = exp(beta).
 
-    Doc ket qua: OR = 2.5 nghia la khi dac trung tang 1 don vi (voi bien da
-    chuan hoa: 1 do lech chuan), odds bi dot quy tang 2.5 lan. OR < 1 la yeu
-    to bao ve.
+    Reading the result: OR = 2.5 means that for a 1-unit increase in the
+    feature (for a standardized feature: 1 standard deviation), the odds of
+    stroke increase 2.5x. OR < 1 is a protective factor.
 
     Args:
-        X: neu duoc cung cap, tinh them khoang tin cay Wald tu ma tran Hessian
-            cua log-likelihood: SE = sqrt(diag((X' W X)^-1)) voi W = diag(p(1-p)).
-            Luu y: khi pipeline co SMOTE, CI nay mang tinh tham khao vi he so
-            duoc hoc tren du lieu da oversampling.
+        X: if provided, also computes Wald confidence intervals from the
+            log-likelihood Hessian: SE = sqrt(diag((X' W X)^-1)) with
+            W = diag(p(1-p)). Note: when the pipeline includes SMOTE, this CI
+            is only indicative since the coefficients were learned on
+            oversampled data.
     """
     model = pipeline.named_steps["model"]
     if not hasattr(model, "coef_"):
-        raise AttributeError("Pipeline khong chua mo hinh tuyen tinh co `coef_`.")
+        raise AttributeError("Pipeline does not contain a linear model with `coef_`.")
 
     pre = pipeline.named_steps["preprocessor"]
     names = list(pre.get_feature_names_out())
@@ -111,7 +112,7 @@ def logistic_odds_ratios(
             "feature": names,
             "coefficient": beta,
             "odds_ratio": np.exp(beta),
-            "direction": np.where(beta > 0, "tang nguy co", "giam nguy co"),
+            "direction": np.where(beta > 0, "increases risk", "decreases risk"),
         }
     )
 
@@ -132,7 +133,7 @@ def logistic_odds_ratios(
 def _wald_odds_ratio_ci(
     pipeline, X: pd.DataFrame, beta: np.ndarray, *, alpha: float = 0.05
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Khoang tin cay Wald cho odds ratio tren cohort `X`."""
+    """Wald confidence interval for the odds ratio on cohort `X`."""
     from scipy.stats import norm
 
     design = _transformed_frame(pipeline, X).to_numpy(dtype=float)
@@ -140,13 +141,14 @@ def _wald_odds_ratio_ci(
     weights = np.clip(proba * (1 - proba), 1e-10, None)
 
     fisher = design.T @ (design * weights[:, None])
-    # Them nhieu Tikhonov nho de ma tran kha nghich khi co dac trung gan cong tuyen.
+    # Small Tikhonov regularization so the matrix stays invertible when
+    # features are near-collinear (e.g. `gender_Other` has only 1 sample).
     ridge = 1e-8 * np.eye(fisher.shape[0])
     standard_errors = np.sqrt(np.diag(np.linalg.pinv(fisher + ridge)))
 
     z = norm.ppf(1 - alpha / 2)
-    # Chan mien gia tri truoc khi exp: dac trung gan cong tuyen (vi du
-    # `gender_Other` chi co 1 mau) cho SE rat lon -> exp() tran so.
+    # Clip the exponent before exp(): near-collinear features give very
+    # large SE -> exp() would otherwise overflow.
     lower = np.exp(np.clip(beta - z * standard_errors, -700, 700))
     upper = np.exp(np.clip(beta + z * standard_errors, -700, 700))
     return lower, upper
@@ -161,7 +163,7 @@ def shap_summary(
     save_path: str | Path | None = None,
     random_state: int = config.RANDOM_STATE,
 ):
-    """Tinh SHAP values va (tuy chon) luu bieu do summary.
+    """Compute SHAP values and (optionally) save a summary plot.
 
     Returns:
         (shap_values, mean_abs_importance_dataframe)
@@ -176,7 +178,7 @@ def shap_summary(
     if hasattr(model, "feature_importances_"):
         explainer = shap.TreeExplainer(model)
         values = explainer.shap_values(X_t)
-        if isinstance(values, list):  # nhi phan -> lay lop duong tinh
+        if isinstance(values, list):  # binary classification -> take the positive class
             values = values[1]
         elif getattr(values, "ndim", 2) == 3:
             values = values[:, :, 1]
@@ -193,7 +195,7 @@ def shap_summary(
         .reset_index(drop=True)
     )
 
-    if save_path is not None:  # pragma: no cover - ve hinh
+    if save_path is not None:  # pragma: no cover - plotting
         import matplotlib
 
         matplotlib.use("Agg", force=False)
@@ -210,9 +212,10 @@ def shap_summary(
 def explain_single_patient(
     pipeline, X: pd.DataFrame, index: int, *, top_k: int = 6
 ) -> pd.DataFrame:
-    """Giai thich cuc bo cho MOT benh nhan (dung khi tu van tai phong kham).
+    """Local explanation for ONE patient (useful for bedside / clinic counseling).
 
-    Tra ve top-k dac trung day xac suat len/xuong manh nhat cho ca benh do.
+    Returns the top-k features that push the predicted probability up/down
+    the most for that case.
     """
     import shap
 
@@ -237,7 +240,7 @@ def explain_single_patient(
             "feature": X_t.columns,
             "value": row.iloc[0].to_numpy(),
             "shap_contribution": contrib,
-            "effect": np.where(contrib > 0, "tang nguy co", "giam nguy co"),
+            "effect": np.where(contrib > 0, "increases risk", "decreases risk"),
         }
     )
     out["abs_contribution"] = out["shap_contribution"].abs()

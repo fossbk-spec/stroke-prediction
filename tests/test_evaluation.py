@@ -1,4 +1,4 @@
-"""Unit test cho bo do do va co che chon nguong quyet dinh."""
+"""Unit tests for the metric set and decision threshold tuning."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from src import evaluation
 
 @pytest.fixture
 def imbalanced_labels():
-    """100 mau, 5 ca duong tinh (giong ty le 4.9% cua bo du lieu that)."""
+    """100 samples, 5 positive cases (matching the real dataset's ~4.9% rate)."""
     y = np.zeros(100, dtype=int)
     y[:5] = 1
     return y
@@ -18,7 +18,7 @@ def imbalanced_labels():
 
 class TestMetrics:
     def test_naive_all_negative_predictor_is_exposed(self, imbalanced_labels):
-        """Mo hinh 'luon du doan 0': Accuracy 95% nhung Recall = 0 -> phai thay ro."""
+        """An 'always predict 0' model: 95% Accuracy but Recall = 0 -> must be exposed."""
         y_proba = np.zeros(100)
         m = evaluation.compute_metrics(imbalanced_labels, y_proba, threshold=0.5)
         assert m["accuracy"] == pytest.approx(0.95)
@@ -34,7 +34,7 @@ class TestMetrics:
         assert m["n_false_negative"] == 0.0
 
     def test_f2_weights_recall_above_precision(self):
-        """F2 cua (Recall cao, Precision thap) > F2 cua (Recall thap, Precision cao)."""
+        """F2 of (high Recall, low Precision) > F2 of (low Recall, high Precision)."""
         y = np.array([0, 0, 0, 0, 1, 1, 1, 1])
         high_recall = np.array([0.6, 0.6, 0.2, 0.2, 0.9, 0.9, 0.9, 0.9])  # R=1.0, P=0.67
         high_precision = np.array([0.1, 0.1, 0.1, 0.1, 0.9, 0.2, 0.2, 0.2])  # R=0.25, P=1.0
@@ -43,7 +43,7 @@ class TestMetrics:
         assert f2_recall > f2_precision
 
     def test_specificity_and_balanced_accuracy(self, imbalanced_labels):
-        y_proba = np.full(100, 0.9)  # du doan tat ca la duong tinh
+        y_proba = np.full(100, 0.9)  # predict positive for everyone
         m = evaluation.compute_metrics(imbalanced_labels, y_proba, threshold=0.5)
         assert m["recall"] == 1.0
         assert m["specificity"] == 0.0

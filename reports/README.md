@@ -1,8 +1,8 @@
 # reports/
 
-Ket qua sinh ra tu ma nguon (CSV/JSON/PNG). KHONG commit cac file ket qua —
-chay lai bang `make eda` / `make train` de tai tao.
+Results generated from source code (CSV/JSON/PNG). These are NOT committed —
+rerun `make eda` / `make train` to regenerate them.
 
-- `figures/` : bieu do EDA, SHAP summary, confusion matrix.
-- `eda/`     : bang CSV tu `src/eda.py` (missing values, class balance, ...).
-- `model_comparison.csv`, `cv_<model>.csv`, `split_summary.json` : ket qua huan luyen.
+- `figures/` : EDA charts, SHAP summary, confusion matrix.
+- `eda/`     : CSV tables from `src/eda.py` (missing values, class balance, ...).
+- `model_comparison.csv`, `cv_<model>.csv`, `split_summary.json` : training results.
