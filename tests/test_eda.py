@@ -80,3 +80,10 @@ class TestEdaOrchestration:
         path = tmp_path / "overview.png"
         eda.plot_eda_overview(synthetic_df, save_path=path)
         assert path.exists() and path.stat().st_size > 0
+
+
+def test_glucose_risk_ratio_without_normal_group(synthetic_df):
+    df = synthetic_df.copy()
+    df["avg_glucose_level"] = 150.0
+    strata = eda.glucose_risk_strata(df)
+    assert strata["risk_ratio_vs_normal"].isna().all()

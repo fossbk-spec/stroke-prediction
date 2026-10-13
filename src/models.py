@@ -58,43 +58,59 @@ def get_model(name: str, *, class_weight: str | None = None, **overrides: Any):
     rs = config.RANDOM_STATE
     builders: dict[str, Any] = {
         "logistic_regression": lambda: LogisticRegression(
-            max_iter=2000,
-            solver="liblinear",
-            class_weight=class_weight,
-            random_state=rs,
-            **overrides,
+            **{
+                "max_iter": 2000,
+                "solver": "liblinear",
+                "class_weight": class_weight,
+                "random_state": rs,
+                **overrides,
+            }
         ),
         "decision_tree": lambda: DecisionTreeClassifier(
-            max_depth=6,
-            min_samples_leaf=20,
-            class_weight=class_weight,
-            random_state=rs,
-            **overrides,
+            **{
+                "max_depth": 6,
+                "min_samples_leaf": 20,
+                "class_weight": class_weight,
+                "random_state": rs,
+                **overrides,
+            }
         ),
         "random_forest": lambda: RandomForestClassifier(
-            n_estimators=400,
-            max_depth=None,
-            min_samples_leaf=3,
-            n_jobs=-1,
-            class_weight=class_weight,
-            random_state=rs,
-            **overrides,
+            **{
+                "n_estimators": 400,
+                "max_depth": None,
+                "min_samples_leaf": 3,
+                "n_jobs": -1,
+                "class_weight": class_weight,
+                "random_state": rs,
+                **overrides,
+            }
         ),
         "gradient_boosting": lambda: GradientBoostingClassifier(
-            n_estimators=200, learning_rate=0.05, max_depth=3, random_state=rs, **overrides
+            **{
+                "n_estimators": 200,
+                "learning_rate": 0.05,
+                "max_depth": 3,
+                "random_state": rs,
+                **overrides,
+            }
         ),
         "svm": lambda: SVC(
-            kernel="rbf",
-            C=1.0,
-            probability=True,
-            class_weight=class_weight,
-            random_state=rs,
-            **overrides,
+            **{
+                "kernel": "rbf",
+                "C": 1.0,
+                "probability": True,
+                "class_weight": class_weight,
+                "random_state": rs,
+                **overrides,
+            }
         ),
-        "knn": lambda: KNeighborsClassifier(n_neighbors=15, weights="distance", **overrides),
+        "knn": lambda: KNeighborsClassifier(
+            **{"n_neighbors": 15, "weights": "distance", **overrides}
+        ),
         "naive_bayes": lambda: GaussianNB(**overrides),
         "xgboost": lambda: _build_xgboost(**overrides),
-        "stacking": lambda: build_stacking_ensemble(class_weight=class_weight),
+        "stacking": lambda: build_stacking_ensemble(class_weight=class_weight, **overrides),
     }
     if name not in builders:
         raise KeyError(f"Model '{name}' does not exist. Valid options: {sorted(builders)}")
@@ -126,6 +142,7 @@ def build_stacking_ensemble(
     *,
     class_weight: str | None = None,
     base_wrapper: Callable[[Any, bool], Any] | None = None,
+    **overrides: Any,
 ) -> StackingClassifier:
     """Stacking Ensemble: diverse base learners + Logistic Regression meta-learner.
 
@@ -146,16 +163,16 @@ def build_stacking_ensemble(
     ]
     if base_wrapper is not None:
         # Only distance/likelihood-based learners benefit from scaling.
-        base_estimators = [
-            (name, base_wrapper(est, name == "nb")) for name, est in base_estimators
-        ]
-    return StackingClassifier(
-        estimators=base_estimators,
-        final_estimator=LogisticRegression(max_iter=2000, class_weight=class_weight),
-        cv=5,
-        stack_method="predict_proba",
-        n_jobs=None,
-    )
+        base_estimators = [(name, base_wrapper(est, name == "nb")) for name, est in base_estimators]
+    params = {
+        "estimators": base_estimators,
+        "final_estimator": LogisticRegression(max_iter=2000, class_weight=class_weight),
+        "cv": 5,
+        "stack_method": "predict_proba",
+        "n_jobs": None,
+    }
+    params.update(overrides)
+    return StackingClassifier(**params)
 
 
 def available_models() -> list[str]:

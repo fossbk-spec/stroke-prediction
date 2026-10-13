@@ -6,10 +6,12 @@ prioritizing **Recall/PR-AUC** over Accuracy for a severely imbalanced
 medical classification problem (4.9% positive rate). Full rationale:
 [`docs/DETAILED_EXAM_REPORT.md`](docs/DETAILED_EXAM_REPORT.md).
 
-## Run on Google Colab / Kaggle Notebooks (offline — no Kaggle token needed)
+## Run on Google Colab / Kaggle Notebooks (no Kaggle token needed)
 The dataset is already bundled under `data/raw/`, so each notebook below
 clones this repo and installs dependencies in its first cell — no manual
-setup required.
+setup required. Colab/Kaggle need GitHub access to clone and PyPI access
+to install dependencies (enable Internet in Kaggle). Local runs inside the repo
+skip cloning and installation.
 
 | Notebook | Colab | Kaggle |
 |---|---|---|
@@ -19,9 +21,9 @@ setup required.
 
 ## Quick start (local)
 ```bash
-make setup      # create .venv + install requirements.txt
+make setup      # create .venv + install requirements-dev.txt
 make verify      # check data/raw/ matches 5,110 records / 249 positive cases
-make test        # 84 unit tests (must pass, especially tests/test_data_leakage.py)
+make test        # 103 tests (must pass, especially tests/test_data_leakage.py)
 make eda         # export EDA tables + figures into reports/
 make train        # train + compare 4 models, results written to reports/
 ```
@@ -49,7 +51,7 @@ stroke-prediction/
 ├── scripts/
 │   ├── download_data.py     # fetch data from Kaggle (kagglehub/CLI/manual)
 │   └── run_eda.py
-├── tests/                    # 84 unit tests, including the anti-leakage suite
+├── tests/                    # 103 tests, including the anti-leakage suite
 ├── docs/
 │   ├── DETAILED_EXAM_REPORT.md   # detailed exam-solution report (source brief)
 │   └── literature/                # 6 paper summaries + dataset spec
@@ -57,8 +59,9 @@ stroke-prediction/
 ```
 
 ## Zero Data Leakage discipline (mandatory)
-1. **Patient-level split**: `StratifiedGroupKFold(groups=id, stratify=stroke)` —
-   never a naive random split at the record level.
+1. **Patient-level holdout**: stratified `train_test_split` on patient IDs
+   creates train/validation/test sets. CV uses `StratifiedGroupKFold(groups=id)`;
+   all records of a patient stay in the same split.
 2. **Fit-on-train-only**: `KNNImputer`, `StandardScaler`, `OneHotEncoder`,
    `SMOTE` are only `fit` on train; validation/test only call `.transform()`.
 3. **SMOTE lives inside the Pipeline** (`imblearn.pipeline.Pipeline`) —

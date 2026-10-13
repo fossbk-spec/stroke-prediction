@@ -130,7 +130,7 @@ def glucose_risk_strata(df: pd.DataFrame) -> pd.DataFrame:
     grouped = tmp.groupby("glucose_stratum", observed=True)[config.TARGET_COLUMN]
     out = grouped.agg(n_samples="count", n_stroke="sum")
     out["stroke_rate"] = out["n_stroke"] / out["n_samples"]
-    baseline = out["stroke_rate"].iloc[0] if len(out) else np.nan
+    baseline = out["stroke_rate"].get("<100 (normal)", np.nan)
     out["risk_ratio_vs_normal"] = out["stroke_rate"] / baseline if baseline else np.nan
     return out.reset_index()
 

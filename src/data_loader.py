@@ -79,9 +79,11 @@ def _coerce_dtypes(df: pd.DataFrame) -> pd.DataFrame:
     for col in config.NUMERIC_FEATURES:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")
-    for col in config.BINARY_FEATURES + [config.TARGET_COLUMN]:
+    for col in config.BINARY_FEATURES:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce").astype("Int64")
+    if config.TARGET_COLUMN in df.columns:
+        df[config.TARGET_COLUMN] = pd.to_numeric(df[config.TARGET_COLUMN], errors="coerce")
     return df
 
 
@@ -94,7 +96,12 @@ def validate_schema(df: pd.DataFrame) -> None:
     if df.empty:
         raise SchemaValidationError("Dataset is empty.")
 
-    target = df[config.TARGET_COLUMN].dropna().unique()
+    labels = pd.to_numeric(df[config.TARGET_COLUMN], errors="coerce")
+    if labels.isna().any():
+        raise SchemaValidationError(
+            f"Target column '{config.TARGET_COLUMN}' must not contain nulls or non-convertible labels."
+        )
+    target = labels.unique()
     invalid_target = sorted(set(np.asarray(target).tolist()) - {0, 1})
     if invalid_target:
         raise SchemaValidationError(

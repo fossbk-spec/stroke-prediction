@@ -144,39 +144,17 @@ from imblearn.over_sampling import SMOTE
 from sklearn.preprocessing import StandardScaler
 from sklearn.impute import KNNImputer
 
-def verify_zero_data_leakage(train_df, val_df, test_df, id_column="id"):
-    """
-    Hàm kiểm tra kỷ luật Zero Data Leakage cấp độ Patient ID.
-    Trả về True nếu không phát sinh rò rỉ dữ liệu giữa các tập.
-    """
-    train_ids = set(train_df[id_column])
-    val_ids = set(val_df[id_column])
-    test_ids = set(test_df[id_column])
-    
-    # Kiểm tra tập giao giữa các tập dữ liệu
-    train_val_overlap = train_ids.intersection(val_ids)
-    train_test_overlap = train_ids.intersection(test_ids)
-    val_test_overlap = val_ids.intersection(test_ids)
-    
-    assert len(train_val_overlap) == 0, f"RÒ RỈ DỮ LIỆU! Có {len(train_val_overlap)} ID xuất hiện ở cả Train và Validation."
-    assert len(train_test_overlap) == 0, f"RÒ RỈ DỮ LIỆU! Có {len(train_test_overlap)} ID xuất hiện ở cả Train và Test."
-    assert len(val_test_overlap) == 0, f"RÒ RỈ DỮ LIỆU! Có {len(val_test_overlap)} ID xuất hiện ở cả Validation và Test."
-    
-    print("✅ XÁC NHẬN ZERO DATA LEAKAGE: Không có bất kỳ Patient ID nào bị rò rỉ giữa các tập dữ liệu!")
-    return True
+from src.preprocessing import patient_level_split, verify_zero_data_leakage
 
 # Pipeline tiền xử lý tuân thủ kỉ luật Fit-on-Train-Only
 def run_clean_preprocessing_pipeline(df):
-    # 1. Phân chia Train / Test theo StratifiedGroupKFold
-    sgkf = StratifiedGroupKFold(n_splits=5)
-    train_idx, test_idx = next(sgkf.split(df, df['stroke'], groups=df['id']))
-    
-    train_data = df.iloc[train_idx].copy()
-    test_data = df.iloc[test_idx].copy()
-    
-    # Kiểm tra rò rỉ ID
-    verify_zero_data_leakage(train_data, train_data, test_data, id_column="id")
-    
+    # 1. Phân chia độc lập theo Patient ID
+    split = patient_level_split(df)
+    train_data = split.train.copy()
+    val_data = split.val.copy()
+    test_data = split.test.copy()
+    verify_zero_data_leakage(train_data, val_data, test_data, id_column="id")
+
     # 2. Fit Imputer chỉ trên Train
     imputer = KNNImputer(n_neighbors=5)
     num_cols = ['age', 'avg_glucose_level', 'bmi']
