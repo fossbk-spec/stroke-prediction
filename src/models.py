@@ -18,6 +18,7 @@ Model-selection rationale for this problem:
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 from sklearn.ensemble import (
@@ -121,11 +122,21 @@ def _build_xgboost(**overrides: Any):
     return XGBClassifier(**params)
 
 
-def build_stacking_ensemble(*, class_weight: str | None = None) -> StackingClassifier:
+def build_stacking_ensemble(
+    *,
+    class_weight: str | None = None,
+    base_wrapper: Callable[[Any, bool], Any] | None = None,
+) -> StackingClassifier:
     """Stacking Ensemble: diverse base learners + Logistic Regression meta-learner.
 
     The internal `cv=5` in `StackingClassifier` ensures meta-features are
     generated from out-of-fold predictions => no leakage from base to meta.
+
+    `base_wrapper(estimator, scale)` wraps each base learner (e.g. into a
+    preprocessor + SMOTE pipeline) so that SMOTE runs only on the train part of
+    each INTERNAL fold. Resampling before the internal CV would let synthetic
+    samples and their source records fall into different folds, making the
+    out-of-fold meta-features optimistic.
     """
     base_estimators = [
         ("rf", get_model("random_forest", class_weight=class_weight)),
@@ -133,6 +144,11 @@ def build_stacking_ensemble(*, class_weight: str | None = None) -> StackingClass
         ("nb", get_model("naive_bayes")),
         ("dt", get_model("decision_tree", class_weight=class_weight)),
     ]
+    if base_wrapper is not None:
+        # Only distance/likelihood-based learners benefit from scaling.
+        base_estimators = [
+            (name, base_wrapper(est, name == "nb")) for name, est in base_estimators
+        ]
     return StackingClassifier(
         estimators=base_estimators,
         final_estimator=LogisticRegression(max_iter=2000, class_weight=class_weight),

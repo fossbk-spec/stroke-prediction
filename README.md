@@ -21,7 +21,7 @@ setup required.
 ```bash
 make setup      # create .venv + install requirements.txt
 make verify      # check data/raw/ matches 5,110 records / 249 positive cases
-make test        # 72 unit tests (must pass, especially tests/test_data_leakage.py)
+make test        # 84 unit tests (must pass, especially tests/test_data_leakage.py)
 make eda         # export EDA tables + figures into reports/
 make train        # train + compare 4 models, results written to reports/
 ```
@@ -49,7 +49,7 @@ stroke-prediction/
 ├── scripts/
 │   ├── download_data.py     # fetch data from Kaggle (kagglehub/CLI/manual)
 │   └── run_eda.py
-├── tests/                    # 72 unit tests, including the anti-leakage suite
+├── tests/                    # 84 unit tests, including the anti-leakage suite
 ├── docs/
 │   ├── DETAILED_EXAM_REPORT.md   # detailed exam-solution report (source brief)
 │   └── literature/                # 6 paper summaries + dataset spec
@@ -76,10 +76,21 @@ asymmetric FN vs. FP risk analysis in medical diagnosis.
 ## Reference results (Test set, threshold tuned on Validation via F2)
 | Model | Recall | PR-AUC | F2 | Precision | ROC-AUC |
 |---|---|---|---|---|---|
-| Stacking Ensemble | 0.84 | 0.12 | 0.38 | 0.12 | 0.77 |
-| Gradient Boosting | 0.74 | 0.14 | 0.41 | 0.15 | 0.82 |
-| Random Forest | 0.62 | 0.15 | 0.38 | 0.15 | 0.81 |
-| Logistic Regression | 0.42 | 0.18 | 0.34 | 0.20 | 0.86 |
+| Logistic Regression | 0.76 | 0.18 | 0.46 | 0.18 | 0.86 |
+| Random Forest | 0.70 | 0.21 | 0.42 | 0.16 | 0.84 |
+| Gradient Boosting | 0.70 | 0.21 | 0.41 | 0.15 | 0.84 |
+| Stacking Ensemble | 0.54 | 0.21 | 0.40 | 0.19 | 0.84 |
+
+Grouped cross-validation (mean ± sample standard deviation across 5 folds):
+
+| Model | Recall | PR-AUC |
+|---|---|---|
+| Logistic Regression | 0.71 ± 0.07 | 0.20 ± 0.04 |
+| Random Forest | 0.71 ± 0.09 | 0.14 ± 0.01 |
+| Gradient Boosting | 0.65 ± 0.10 | 0.15 ± 0.02 |
+| Stacking Ensemble | 0.70 ± 0.11 | 0.16 ± 0.02 |
+
+The test set has only ~50 positive cases, so test differences are noisy; CV is more reliable.
 
 Reproduce with: `make train` (see `reports/train_log.txt`).
 

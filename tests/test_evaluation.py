@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
+from sklearn.metrics import roc_auc_score
 
 from src import evaluation
 
@@ -17,6 +18,15 @@ def imbalanced_labels():
 
 
 class TestMetrics:
+    def test_average_precision_and_f2_match_hand_calculation(self):
+        y = np.array([1, 0, 1, 0])
+        proba = np.array([0.9, 0.8, 0.4, 0.1])
+        metrics = evaluation.compute_metrics(y, proba, threshold=0.5, beta=2)
+        # Positive ranks 1 and 3: AP = (1 + 2/3) / 2.
+        assert metrics["pr_auc"] == pytest.approx(5 / 6)
+        # TP=1, FP=1, FN=1: F2 = 5*TP / (5*TP + 4*FN + FP).
+        assert metrics["f2"] == pytest.approx(0.5)
+
     def test_naive_all_negative_predictor_is_exposed(self, imbalanced_labels):
         """An 'always predict 0' model: 95% Accuracy but Recall = 0 -> must be exposed."""
         y_proba = np.zeros(100)
@@ -126,3 +136,45 @@ class TestModelEvaluation:
         assert len(cv) == 3
         assert "recall" in cv.columns
         assert evaluation.summarize_cv(cv).notna().all()
+
+    def test_grouped_cv_with_decision_function_returns_all_folds(self, synthetic_df):
+        from sklearn.svm import LinearSVC
+
+        from src import config
+        from src.data_loader import split_features_target
+        from src.preprocessing import make_full_pipeline
+
+        X, y = split_features_target(synthetic_df)
+        pipeline = make_full_pipeline(LinearSVC())
+        cv = evaluation.cross_validate_grouped(
+            pipeline, X, y, synthetic_df[config.ID_COLUMN], n_splits=3
+        )
+        assert len(cv) == 3
+
+    def test_grouped_cv_threshold_not_tuned_on_in_sample_predictions(
+        self, synthetic_df, monkeypatch
+    ):
+        """The per-fold threshold must come from out-of-fold (not in-sample) predictions."""
+        from sklearn.tree import DecisionTreeClassifier
+
+        from src import config
+        from src.data_loader import split_features_target
+        from src.preprocessing import make_full_pipeline
+
+        X, y = split_features_target(synthetic_df)
+        pipeline = make_full_pipeline(DecisionTreeClassifier(random_state=0), scale=False)
+        seen = []
+        original = evaluation.find_best_threshold
+
+        def spy(y_true, y_proba, **kwargs):
+            seen.append((np.asarray(y_true), np.asarray(y_proba)))
+            return original(y_true, y_proba, **kwargs)
+
+        monkeypatch.setattr(evaluation, "find_best_threshold", spy)
+        evaluation.cross_validate_grouped(
+            pipeline, X, y, synthetic_df[config.ID_COLUMN], n_splits=3
+        )
+        assert len(seen) == 3
+        # An unpruned tree ranks its own training data ~perfectly; OOF predictions do not.
+        for y_true, proba in seen:
+            assert roc_auc_score(y_true, proba) < 0.99
