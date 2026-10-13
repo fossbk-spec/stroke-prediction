@@ -207,7 +207,7 @@ def run_clean_preprocessing_pipeline(df):
 
 ## KIẾN TRÚC PROJECT VÀ CẤU TRÚC REPOSITORY GITHUB
 
-Dưới đây là sơ đồ cấu trúc thư mục quy chuẩn để khởi tạo dự án trên GitHub và kết hợp làm việc với Codex / Google Antigravity:
+Dưới đây là sơ đồ cấu trúc thư mục quy chuẩn để khởi tạo dự án trên GitHub và kết hợp làm việc song song với Claude / Codex / Google Antigravity:
 
 ```
 stroke-prediction-n22/
