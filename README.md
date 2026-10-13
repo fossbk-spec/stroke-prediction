@@ -91,23 +91,23 @@ asymmetric FN vs. FP risk analysis in medical diagnosis.
 ## Reference results (Test set, threshold tuned on Validation via F2)
 | Model | Recall | PR-AUC | F2 | Precision | ROC-AUC |
 |---|---|---|---|---|---|
-| Logistic Regression | 0.76 | 0.18 | 0.46 | 0.18 | 0.86 |
-| Random Forest | 0.70 | 0.21 | 0.42 | 0.16 | 0.84 |
-| Gradient Boosting | 0.70 | 0.21 | 0.41 | 0.15 | 0.84 |
-| Stacking Ensemble | 0.54 | 0.21 | 0.40 | 0.19 | 0.84 |
+| Logistic Regression | 0.76 | 0.19 | 0.35 | 0.11 | 0.83 |
+| Random Forest | 0.70 | 0.17 | 0.38 | 0.13 | 0.82 |
+| Gradient Boosting | 0.50 | 0.17 | 0.30 | 0.12 | 0.79 |
+| Stacking Ensemble | 0.88 | 0.17 | 0.36 | 0.11 | 0.83 |
 
 Grouped cross-validation (mean ± sample standard deviation across 5 folds):
 
 | Model | Recall | PR-AUC |
 |---|---|---|
-| Logistic Regression | 0.71 ± 0.07 | 0.20 ± 0.04 |
-| Random Forest | 0.71 ± 0.09 | 0.14 ± 0.01 |
-| Gradient Boosting | 0.65 ± 0.10 | 0.15 ± 0.02 |
-| Stacking Ensemble | 0.70 ± 0.11 | 0.16 ± 0.02 |
+| Logistic Regression | 0.74 ± 0.11 | 0.16 ± 0.03 |
+| Random Forest | 0.83 ± 0.06 | 0.14 ± 0.04 |
+| Gradient Boosting | 0.84 ± 0.11 | 0.15 ± 0.03 |
+| Stacking Ensemble | 0.74 ± 0.08 | 0.14 ± 0.03 |
 
 The test set has only ~50 positive cases, so test differences are noisy; CV is more reliable.
 
-Reproduce with: `make train` (see `reports/train_log.txt`).
+Reproduce with: `make train`. Pipeline: imputation -> SMOTENC -> encoding/scaling; patient-grouped stacking. Generated on Python 3.14 (scikit-learn 1.9.1, imbalanced-learn 0.14.2); exact numbers can differ slightly on the pinned CI environment.
 
 ## License
 Source code: MIT (see `LICENSE`). The Kaggle dataset follows Kaggle's own

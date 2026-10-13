@@ -22,14 +22,13 @@ from collections.abc import Callable
 from typing import Any
 
 import numpy as np
-from sklearn.model_selection import StratifiedGroupKFold
-
 from sklearn.ensemble import (
     GradientBoostingClassifier,
     RandomForestClassifier,
     StackingClassifier,
 )
 from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import StratifiedGroupKFold
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
@@ -167,6 +166,13 @@ class PatientGroupedStackingClassifier(StackingClassifier):
             self.cv = original_cv
         self.inner_splits_ = splits
         return result
+
+
+def fit_with_groups(model, X, y, groups):
+    """Fit an estimator, passing patient groups to grouped stacking only."""
+    if isinstance(model, PatientGroupedStackingClassifier):
+        return model.fit(X, y, groups=groups)
+    return model.fit(X, y)
 
 
 def build_stacking_ensemble(

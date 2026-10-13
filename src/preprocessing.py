@@ -263,6 +263,7 @@ def make_full_pipeline(
     smote_strategy: float | str = "auto",
     smote_k_neighbors: int = 5,
     numeric_imputer: str = "knn",
+    knn_neighbors: int = 5,
     scale: bool = True,
     random_state: int = config.RANDOM_STATE,
 ) -> ImbPipeline:
@@ -273,7 +274,8 @@ def make_full_pipeline(
     `fit_resample` is only ever called on the train portion of each fold.
     """
     steps: list[tuple[str, object]] = [
-        ("preprocessor", make_preprocessor(numeric_imputer=numeric_imputer, scale=scale))
+        ("preprocessor", make_preprocessor(numeric_imputer=numeric_imputer,
+                                            knn_neighbors=knn_neighbors, scale=scale))
     ]
     if use_smote:
         # Impute raw categories before resampling; one-hot encoding follows it.
@@ -281,7 +283,7 @@ def make_full_pipeline(
                        + config.NOMINAL_FEATURES)
         preparation = ColumnTransformer(
             [("num", SimpleImputer(strategy="median") if numeric_imputer == "median"
-              else KNNImputer(weights="distance"), config.NUMERIC_FEATURES),
+              else KNNImputer(n_neighbors=knn_neighbors, weights="distance"), config.NUMERIC_FEATURES),
              ("cat", SimpleImputer(strategy="most_frequent"), categorical)],
             verbose_feature_names_out=False,
         ).set_output(transform="pandas")

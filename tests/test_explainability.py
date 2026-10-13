@@ -31,13 +31,13 @@ def fitted_tree(synthetic_df):
 
 class TestOddsRatios:
     def test_odds_ratio_equals_exp_coefficient(self, fitted_linear):
-        pipeline, X, _y = fitted_linear
+        pipeline, _X, _y = fitted_linear
         table = explainability.logistic_odds_ratios(pipeline)
         np.testing.assert_allclose(table["odds_ratio"], np.exp(table["coefficient"]), rtol=1e-9)
 
     def test_bootstrap_intervals_are_reproducible(self, fitted_linear):
         pipeline, X, y = fitted_linear
-        kwargs = dict(groups=X.index, n_boot=8, random_state=12)
+        kwargs = {"groups": X.index, "n_boot": 8, "random_state": 12}
         table = explainability.logistic_odds_ratios(pipeline, X, y, **kwargs)
         repeated = explainability.logistic_odds_ratios(pipeline, X, y, **kwargs)
         np.testing.assert_allclose(table["or_ci_lower"], repeated["or_ci_lower"])
