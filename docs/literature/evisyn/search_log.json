@@ -9,22 +9,26 @@
     {
       "database": "Semantic Scholar",
       "query": "stroke risk prediction machine learning tabular clinical data (year 2020-2026)",
-      "results": 0
+      "results": 0,
+      "run_date": "2026-10-13 (rerun after HTTP 429)"
     },
     {
       "database": "Semantic Scholar",
       "query": "stroke prediction ensemble stacking SMOTE class imbalance (year 2020-2026)",
-      "results": 0
+      "results": 0,
+      "run_date": "2026-10-13 (rerun after HTTP 429)"
     },
     {
       "database": "Semantic Scholar",
       "query": "stroke prediction explainable machine learning SHAP risk factors (year 2020-2026)",
-      "results": 0
+      "results": 100,
+      "run_date": "2026-10-13 (rerun after HTTP 429)"
     },
     {
       "database": "Semantic Scholar",
       "query": "stroke prediction electronic health records gradient boosting cohort (year 2020-2026)",
-      "results": 0
+      "results": 0,
+      "run_date": "2026-10-13 (rerun after HTTP 429)"
     },
     {
       "database": "OpenAlex",
@@ -42,26 +46,27 @@
       "results": 100
     }
   ],
-  "identified": 802,
-  "duplicates_removed": 68,
-  "after_dedup": 734,
+  "identified": 902,
+  "duplicates_removed": 94,
+  "after_dedup": 808,
   "other_sources": 3,
-  "excluded": 661,
+  "excluded": 735,
   "eligible": 73,
   "core_matrix": 18,
   "prisma_counts": {
     "europepmc": 499,
     "openalex": 300,
-    "s2": 0,
+    "s2": 100,
     "other": 3,
-    "total_identified": 802,
-    "duplicates_removed": 68,
-    "unique_records": 734,
-    "excluded_title_abstract": 661,
+    "total_identified": 902,
+    "duplicates_removed": 94,
+    "unique_records": 808,
+    "excluded_title_abstract": 735,
     "fulltext_assessed": 73,
     "ex_wrong_design": 0,
     "ex_no_metrics": 0,
     "ex_no_data": 0,
     "final_included": 18
-  }
+  },
+  "notes": "PubMed (NCBI E-utilities) blocked by NCBI WAF from this environment; Europe PMC covers MEDLINE. Semantic Scholar rerun 2026-10-13: 1 of 4 queries succeeded (100 records), 3 still HTTP 429."
 }

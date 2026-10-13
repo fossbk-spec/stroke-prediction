@@ -3,16 +3,16 @@ flowchart TD
         A1["PubMed: 0"]
         A2["Europe PMC: 499"]
         A3["OpenAlex: 300"]
-        A4["Semantic Scholar: 0"]
+        A4["Semantic Scholar: 100"]
         A5["Scopus / WoS: 3"]
-        TOTAL_ID["Tổng số bản ghi thu thập được<br>N = 802"]
+        TOTAL_ID["Tổng số bản ghi thu thập được<br>N = 902"]
         A1 & A2 & A3 & A4 & A5 --> TOTAL_ID
     end
 
     subgraph SCREENING [2. Screening - Sàng lọc]
-        DUP["Bản ghi trùng lặp bị loại<br>N = 68"]
-        UNIQUE["Bản ghi độc nhất đưa vào sàng lọc Title/Abstract<br>N = 734"]
-        EXCLUDED["Bị loại qua Title/Abstract (AI + HITL)<br>N = 661"]
+        DUP["Bản ghi trùng lặp bị loại<br>N = 94"]
+        UNIQUE["Bản ghi độc nhất đưa vào sàng lọc Title/Abstract<br>N = 808"]
+        EXCLUDED["Bị loại qua Title/Abstract (AI + HITL)<br>N = 735"]
         RETRIEVED["Bài báo thẩm định toàn văn (Full-text)<br>N = 73"]
 
         TOTAL_ID --> DUP

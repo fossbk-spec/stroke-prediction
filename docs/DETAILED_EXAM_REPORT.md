@@ -60,10 +60,12 @@
    - **Toàn vẹn trích dẫn:** Mọi DOI được xác minh qua Crossref; bài bị rút (retraction) hoặc có expression of concern bị loại.
 2. **Chiến lược tìm kiếm & PRISMA 2020 (truy cập ngày 2026-10-13):**
    - Europe PMC (`TITLE_ABS` stroke AND ML/RF/GB/XGBoost/stacking/ensemble AND prediction/risk AND imbalance/SMOTE/EHR/risk factors/Kaggle, 2020–2026, journal article): 499 bản ghi.
-   - Semantic Scholar: 4 truy vấn đều trả về HTTP 429 (API công khai không có key) nên được thay bằng OpenAlex (3 truy vấn, lọc 2020–2026, có DOI, loại `article`): 300 bản ghi.
+   - OpenAlex (3 truy vấn, lọc 2020–2026, có DOI, loại `article`): 300 bản ghi — bổ sung khi Semantic Scholar trả về HTTP 429.
+   - Semantic Scholar (chạy lại cùng ngày): 1/4 truy vấn thành công, 100 bản ghi (74 bản ghi mới sau khử trùng lặp, không bài nào đạt tiêu chí); 3 truy vấn còn lại vẫn HTTP 429.
+   - PubMed: E-utilities bị NCBI WAF chặn từ môi trường chạy; Europe PMC đã bao phủ phần lớn MEDLINE.
    - Nguồn khác (bài seed từ đề bài): 3 bản ghi.
-   - Sau khử trùng lặp 2 tầng (DOI/PMID + RapidFuzz ≥ 92%): **734** bản ghi → loại **661** (kết cục sau đột quỵ, ảnh/tín hiệu, ngoài chủ đề, nơi xuất bản không đạt tiêu chí, abstract hội nghị) → **73** bài đủ điều kiện → **18** bài lõi được trích xuất 8 trường.
-   - Crossref phát hiện và loại 3 bài bị rút cùng 1 bài có expression of concern: Hassan et al. (Sci Rep; Retraction Note 2026, cũng dùng dữ liệu Kaggle), Saleem et al. (Sci Rep 2024), Mochurad et al. (BMC Med Inform Decis Mak 2025; rút ngày 2026-06-15), Sahriar et al. (Heliyon 2024, expression of concern).
+   - Sau khử trùng lặp 2 tầng (DOI/PMID + RapidFuzz ≥ 92%): **808** bản ghi → loại **735** (kết cục sau đột quỵ, ảnh/tín hiệu, ngoài chủ đề, nơi xuất bản không đạt tiêu chí, abstract hội nghị) → **73** bài đủ điều kiện → **18** bài lõi được trích xuất 8 trường.
+   - Crossref phát hiện và loại 3 bài bị rút cùng 1 bài có expression of concern: Hassan et al. (Sci Rep; Retraction Note 2026, cũng dùng dữ liệu Kaggle), Saleem et al. (Sci Rep 2024), Mochurad et al. (BMC Med Inform Decis Mak 2025; rút ngày 2026-06-15), Sahriar et al. (Heliyon 2024, expression of concern); thêm 1 bài XAI trên dữ liệu đột quỵ (Sci Rep 2025) đã bị rút, phát hiện ở lượt Semantic Scholar.
 3. **8 trường thông tin bắt buộc trong Ma trận tổng quan y văn:**
    - (1) Tác giả & Năm xuất bản; (2) Tập bệnh nhân mục tiêu; (3) Nguồn dữ liệu & Kích thước mẫu; (4) Thuộc tính/Đặc trưng chính; (5) Kiến trúc mô hình ML/DL; (6) Giao thức phân chia dữ liệu (Data Split Protocol); (7) Độ đo & Kết quả chính (Recall, AUC, F1); (8) Hạn chế & Khoảng trống nghiên cứu.
 4. **Nguyên tắc minh bạch trích dẫn (Traceability):**
@@ -108,6 +110,28 @@
 | Soladoye et al. (2025) [@Soladoye2025SR] | ML dự báo đột quỵ 2013–2024 | 5 CSDL, 58 nghiên cứu (48 dùng EHR) | Thuật toán, dữ liệu, khu vực | Ensemble, DL | PRISMA, tổng hợp mô tả | Ensemble đạt accuracy 90.4–97.8% | Quần thể châu Phi xuất hiện trong ít hơn 4 nghiên cứu; báo cáo accuracy thay vì recall; các nghiên cứu hiệu năng cao thường dựa vào dữ liệu Kaggle không rõ nguồn gốc | PDF tr. 1 (Abstract), tr. 8 (Discussion) |
 | Heseltine-Carpenter et al. (2025) [@HeseltineCarp2025SR] | ML trên dữ liệu bệnh viện thường quy | PubMed, 49 nghiên cứu | So với CHA2DS2-VASc, QRISK3 | Nhiều loại ML | Tổng quan có thẩm định | AUC từ 0.64 đến 0.99 | Nghi ngờ overfitting, thiếu hiệu chuẩn, kiểm định ngoài và giải thích | Abstract |
 | Velagapudi et al. (2021) [@Velagapudi2021Discrepancies] | Nghiên cứu ML đột quỵ tại Mỹ | PubMed, 27 nghiên cứu | Nguồn gốc dữ liệu | Không áp dụng | Đối chiếu với tỷ lệ đột quỵ của CDC | 25.9% dùng dữ liệu California | Dữ liệu huấn luyện không khớp nơi gánh nặng đột quỵ cao nhất | Abstract |
+
+**Bảng so sánh: xử lý mất cân bằng và rủi ro rò rỉ dữ liệu (14 nghiên cứu gốc; "—" = không báo cáo trong phần đã trích xuất)**
+
+| Tác giả & Năm | Quy mô mẫu (N) | Ca dương tính / tỷ lệ | Thuật toán tốt nhất | Recall / Sensitivity | ROC-AUC / C-statistic | Xử lý mất cân bằng | Rủi ro rò rỉ dữ liệu |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| Dritsas & Trigka (2022) [@Dritsas2022Stacking] | 3254 | 5.53% | Stacking | 97.4% | 98.9% | SMOTE trên toàn bộ dữ liệu (6148 mẫu) | **Cao** — SMOTE trước 10-fold CV |
+| Rehman et al. (2023) [@Rehman2023RDET] | 3254 | — | RDET stacking | — | 0.98 (RF, ETC) | SMOTE, ADASYN | **Cao** — accuracy 100% |
+| Melnykova et al. (2025) [@Melnykova2025Imbalanced] | 4981 | — | RF | 90% | — | SMOTE | **Chưa xác định** — thứ tự SMOTE/chia không rõ |
+| Kokkotis et al. (2022) [@Kokkotis2022Explainable] | 43,400 | — | MLP (FN rate 18.60) / LR (AUC 83.30) | 81.40 (MLP) | 83.30 (LR) | Random under-sampling mỗi lần chạy | **Thấp** — nested stratified 10-fold CV |
+| Akinwumi et al. (2025) [@Akinwumi2025Evaluating] | 5110 | 50 ca trong tập test | LR (ROC-AUC 0.8362) | LR: 0 / 50 ca | 0.8362 | Resampling (không dùng SMOTE) | **Trung bình** — CV sau resampling |
+| Chun et al. (2021) [@Chun2021CKB] | ~0.5 triệu (train 174 498 nam, 253 766 nữ) | — | GBT / ensemble GBT + Cox | 80% (nam), 74% (nữ) | 0.833 (nam), 0.836 (nữ) | Không resampling | **Thấp** — train/validation/test tách biệt |
+| Yang et al. (2021) [@Yang2021Hypertensive] | 57,671 | 9421 ca | XGBoost | 0.8512 | 0.9220 | Lấy mẫu cân bằng ca-chứng → 19,953 mẫu | **Trung bình** — tập test cân bằng nhân tạo |
+| Duan et al. (2025) [@Duan2025CHERRY] | 92,172 | 436 ca | RF | 0.947 | 0.980 | — | **Trung bình** — kết quả nội bộ rất lạc quan, RF hiệu chuẩn kém |
+| Vu et al. (2024) [@Vu2024Suita] | 7389 | — | RF | 0.70 | 0.71 | Down-sampling | **Trung bình** — down-sampling trước khi chia |
+| Lolak et al. (2023) [@Lolak2023Explainable] | 275,247 | 9659 ca (3.5%) | XGBoost (F1 0.80) | — | 0.89 | — | — |
+| Lip et al. (2022) [@Lip2022Multimorbidity] | 3,435,224 | — | ML (LR/GB/NN) | — | 0.866 | — | **Thấp** — external validation |
+| Orfanoudaki et al. (2020) [@Orfanoudaki2020NonLinear] | 4,385 (18,793 lượt khám) | — | Optimal Classification Trees | — | 75.29% (kiểm định ngoài) | — | **Thấp** — cohort kiểm định riêng |
+| Hong et al. (2023) [@Hong2023Race] | 62,482 | — | Không mô hình nào vượt trội | — | 0.72–0.73 | — | **Thấp** — 4 cohort, đánh giá theo nhóm |
+| Gao et al. (2024) [@Gao2024Fair] | — | — | LightGBM + giảm chênh lệch | — | trên 0.80 | — | **Thấp** — hold-out theo thời gian |
+| **Dự án N22 (tham chiếu)** | 5,110 (test 1,022) | 249 (4.9%) | Stacking (OOF theo bệnh nhân) | 0.88 trên tập test | 0.83 | SMOTENC trong pipeline | **Thấp** — chia theo bệnh nhân, chỉ fit trên train |
+
+*PR-AUC không được báo cáo ở các nghiên cứu trên trong phần đã trích xuất; dự án N22 báo cáo AP = 0.17 (Stacking) trên tập test.*
 
 ### Câu 2.2: Phân tích khoảng trống nghiên cứu & Mô hình Baseline
 1. **Khoảng trống nghiên cứu chính (Research Gaps)** — đã qua Chốt 3.5 (đối chiếu cả bằng chứng phản bác):
