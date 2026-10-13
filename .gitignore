@@ -5,7 +5,15 @@ data/raw/*
 !data/raw/.gitkeep
 data/processed/*
 !data/processed/.gitkeep
+# SSoT PDFs are copyrighted by default
 data/SSoT_pdf_references/*.pdf
+# Open-licence publisher PDFs (redistributable with attribution; see the folder README)
+!data/SSoT_pdf_references/2021_Chun_StrokeRiskPredictionCKB.pdf
+!data/SSoT_pdf_references/2021_Yang_AccuratePredictionStrokeHypertensive.pdf
+!data/SSoT_pdf_references/2022_Dritsas_StrokeRiskPredictionML.pdf
+!data/SSoT_pdf_references/2025_Akinwumi_EvaluatingMLStrokePrediction.pdf
+!data/SSoT_pdf_references/2025_Duan_StrokeRiskPredictionCHERRY.pdf
+!data/SSoT_pdf_references/2025_Soladoye_MLTechniquesStrokeSystematicReview.pdf
 
 # --- Results generated from source code ---
 reports/figures/*.png
