@@ -17,6 +17,8 @@ Mandatory principles of this module:
 
 from __future__ import annotations
 
+import hashlib
+import warnings
 from dataclasses import dataclass
 
 import numpy as np
@@ -68,21 +70,27 @@ def _group_stratified_holdout(
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Carve out a hold-out split, stratified by label and grouped by patient id.
 
-    `StratifiedGroupKFold` is preferred over `GroupShuffleSplit` because it
-    both keeps patient groups intact AND tries to preserve the positive-class
-    ratio (4.9%) — critical with severe class imbalance.
+    Splits the unique patient ids (not records) with `train_test_split`,
+    stratified on a patient-level label (1 if any of the patient's records is
+    positive). This keeps patient groups intact, preserves the positive-class
+    ratio (4.9%) — critical with severe class imbalance — and honours ANY
+    `holdout_size`, unlike taking one fold of `StratifiedGroupKFold`, which
+    only supports fractions of the form 1/k.
     """
-    from sklearn.model_selection import StratifiedGroupKFold
+    from sklearn.model_selection import train_test_split
 
     if not 0 < holdout_size < 1:
         raise ValueError("holdout_size must be in the (0, 1) range.")
 
-    n_splits = max(2, int(round(1 / holdout_size)))
-    sgkf = StratifiedGroupKFold(n_splits=n_splits, shuffle=True, random_state=random_state)
-    keep_idx, holdout_idx = next(
-        sgkf.split(df, df[config.TARGET_COLUMN], groups=df[config.ID_COLUMN])
+    patient_label = df.groupby(config.ID_COLUMN)[config.TARGET_COLUMN].max()
+    _keep_ids, holdout_ids = train_test_split(
+        patient_label.index,
+        test_size=holdout_size,
+        stratify=patient_label.to_numpy(),
+        random_state=random_state,
     )
-    return df.iloc[keep_idx].copy(), df.iloc[holdout_idx].copy()
+    in_holdout = df[config.ID_COLUMN].isin(holdout_ids)
+    return df[~in_holdout].copy(), df[in_holdout].copy()
 
 
 def patient_level_split(
@@ -221,11 +229,39 @@ def make_preprocessor(
     )
 
 
+class AdaptiveSMOTE(SMOTE):
+    """SMOTE that caps `k_neighbors` to the minority-class size seen at fit time.
+
+    A plain `SMOTE(k_neighbors=5)` crashes with an opaque scikit-learn error
+    when a (CV) training fold has fewer than 6 minority samples. This variant
+    lowers `k_neighbors` to `n_minority - 1` with a warning, and raises a clear
+    error when fewer than 2 minority samples remain.
+    """
+
+    def fit_resample(self, X, y, **params):
+        n_minority = int(np.unique(np.asarray(y), return_counts=True)[1].min())
+        if n_minority < 2:
+            raise ValueError(
+                f"SMOTE needs at least 2 minority-class samples, got {n_minority}. "
+                "Use fewer CV folds or disable SMOTE (use_smote=False)."
+            )
+        k_neighbors = min(self.k_neighbors, n_minority - 1)
+        if k_neighbors < self.k_neighbors:
+            warnings.warn(
+                f"Only {n_minority} minority-class samples: lowering SMOTE "
+                f"k_neighbors from {self.k_neighbors} to {k_neighbors}.",
+                stacklevel=2,
+            )
+        smote = SMOTE(**{**self.get_params(), "k_neighbors": k_neighbors})
+        return smote.fit_resample(X, y, **params)
+
+
 def make_full_pipeline(
     estimator,
     *,
     use_smote: bool = True,
     smote_strategy: float | str = "auto",
+    smote_k_neighbors: int = 5,
     numeric_imputer: str = "knn",
     scale: bool = True,
     random_state: int = config.RANDOM_STATE,
@@ -241,7 +277,14 @@ def make_full_pipeline(
     ]
     if use_smote:
         steps.append(
-            ("smote", SMOTE(sampling_strategy=smote_strategy, random_state=random_state, k_neighbors=5))
+            (
+                "smote",
+                AdaptiveSMOTE(
+                    sampling_strategy=smote_strategy,
+                    random_state=random_state,
+                    k_neighbors=smote_k_neighbors,
+                ),
+            )
         )
     steps.append(("model", estimator))
     return ImbPipeline(steps)
@@ -268,7 +311,7 @@ def assert_no_fit_on_holdout(pipeline: ImbPipeline, X_holdout: pd.DataFrame) -> 
     """Verify that a fitted pipeline's state does not change when transforming hold-out data.
 
     Captures the learned parameters (scaler's mean_/scale_, encoder's
-    categories_) before and after calling `transform` on the hold-out set: if
+    categories_, imputer's learned data) before and after calling `transform` on the hold-out set: if
     they change, a `fit` was mistakenly performed on hold-out data.
     """
     pre: ColumnTransformer = pipeline.named_steps["preprocessor"]
@@ -290,6 +333,10 @@ def _fitted_state(preprocessor: ColumnTransformer) -> str:
         if not hasattr(transformer, "named_steps"):
             continue
         for step_name, step in transformer.named_steps.items():
+            fit_X = getattr(step, "_fit_X", None)
+            if fit_X is not None:
+                digest = hashlib.sha256(np.asarray(fit_X).tobytes()).hexdigest()
+                chunks.append(f"{name}.{step_name}._fit_X={fit_X.shape}:{digest}")
             for attr in ("mean_", "scale_", "var_", "statistics_", "categories_"):
                 value = getattr(step, attr, None)
                 if value is None:

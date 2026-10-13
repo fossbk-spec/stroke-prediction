@@ -65,7 +65,8 @@ def compute_metrics(
     """Compute the metric set from predicted probabilities.
 
     Note: `roc_auc` and `pr_auc` are threshold-independent; the remaining
-    metrics are computed at `threshold`.
+    metrics are computed at `threshold`. `pr_auc` is Average Precision
+    (sklearn `average_precision_score`), not trapezoidal PR area.
     """
     y_true = np.asarray(y_true).astype(int)
     y_proba = np.asarray(y_proba, dtype=float)
@@ -194,12 +195,17 @@ def cross_validate_grouped(
     beta: float = config.F_BETA,
     threshold: float = config.DEFAULT_THRESHOLD,
     tune_threshold: bool = True,
+    min_recall: float | None = None,
+    inner_splits: int = 3,
 ) -> pd.DataFrame:
     """Cross-validation with `StratifiedGroupKFold` + optional per-fold threshold tuning.
 
-    Per fold: fit on the train fold (SMOTE included inside the pipeline),
-    choose the threshold on the train fold (out-of-sample w.r.t. the
-    validation fold), then compute metrics on the validation fold.
+    Per fold: choose the threshold on OUT-OF-FOLD predictions from an inner
+    grouped CV over the train fold (mirroring "tune on validation"; in-sample
+    predictions are overconfident, especially for trees), fit on the whole
+    train fold (SMOTE included inside the pipeline), then compute metrics on
+    the validation fold. `min_recall` switches the threshold policy from
+    F-beta to `threshold_for_min_recall`, as in `train.py`.
     """
     from sklearn.base import clone
 
@@ -212,14 +218,22 @@ def cross_validate_grouped(
         X_tr, X_va = X.iloc[tr], X.iloc[va]
         y_tr, y_va = y.iloc[tr], y.iloc[va]
 
-        model = clone(pipeline)
-        model.fit(X_tr, y_tr)
-
         fold_threshold = threshold
         if tune_threshold:
-            fold_threshold, _ = find_best_threshold(
-                y_tr, predict_proba_positive(model, X_tr), beta=beta
-            )
+            oof_proba = np.empty(len(y_tr), dtype=float)
+            for inner_tr, inner_va in cv_splitter(n_splits=inner_splits).split(
+                X_tr, y_tr, groups=groups.iloc[tr]
+            ):
+                inner_model = clone(pipeline)
+                inner_model.fit(X_tr.iloc[inner_tr], y_tr.iloc[inner_tr])
+                oof_proba[inner_va] = predict_proba_positive(inner_model, X_tr.iloc[inner_va])
+            if min_recall is not None:
+                fold_threshold = threshold_for_min_recall(y_tr, oof_proba, min_recall=min_recall)
+            else:
+                fold_threshold, _ = find_best_threshold(y_tr, oof_proba, beta=beta)
+
+        model = clone(pipeline)
+        model.fit(X_tr, y_tr)
 
         metrics = compute_metrics(
             y_va, predict_proba_positive(model, X_va), threshold=fold_threshold, beta=beta

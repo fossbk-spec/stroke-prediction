@@ -133,6 +133,26 @@ class TestSmote:
         pipeline.fit(X, y)
         assert len(pipeline.predict(X)) == len(X)
 
+    def test_smote_lowers_k_neighbors_on_tiny_minority(self, synthetic_df):
+        """A fold with only 4 positives must still fit (k_neighbors capped to 3)."""
+        positives = synthetic_df[synthetic_df[config.TARGET_COLUMN] == 1].head(4)
+        negatives = synthetic_df[synthetic_df[config.TARGET_COLUMN] == 0].head(100)
+        X, y = split_features_target(pd.concat([positives, negatives]))
+
+        pipeline = preprocessing.make_full_pipeline(get_model("logistic_regression"))
+        with pytest.warns(UserWarning, match="k_neighbors from 5 to 3"):
+            pipeline.fit(X, y)
+        assert len(pipeline.predict(X)) == len(X)
+
+    def test_smote_raises_clear_error_on_single_minority_sample(self, synthetic_df):
+        positives = synthetic_df[synthetic_df[config.TARGET_COLUMN] == 1].head(1)
+        negatives = synthetic_df[synthetic_df[config.TARGET_COLUMN] == 0].head(100)
+        X, y = split_features_target(pd.concat([positives, negatives]))
+
+        pipeline = preprocessing.make_full_pipeline(get_model("logistic_regression"))
+        with pytest.raises(ValueError, match="at least 2 minority-class samples"):
+            pipeline.fit(X, y)
+
 
 class TestPipelineIntegration:
     def test_feature_names_match_matrix_width(self, synthetic_df):
