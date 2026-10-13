@@ -1,0 +1,14 @@
+{
+  "n_source": 43400,
+  "n_reference": 5110,
+  "n_overlap_ids": 5110,
+  "overlap_rows_identical": true,
+  "n_disjoint": 38290,
+  "n_source_positives": 783,
+  "source_positive_rate": 0.01804147465437788,
+  "n_reference_positives": 249,
+  "reference_positive_rate": 0.0487279843444227,
+  "n_disjoint_positives": 534,
+  "disjoint_positive_rate": 0.013946200052232958,
+  "n_smoking_status_filled": 13292
+}

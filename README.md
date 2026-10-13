@@ -94,6 +94,8 @@ asymmetric FN vs. FP risk analysis in medical diagnosis.
 python -m src.leakage_experiment --models logistic_regression random_forest gradient_boosting --n-repeats 5 --n-splits 5 --output reports/leakage
 ```
 
+For the same-source disjoint sample, add `--data data/raw/cerebral-stroke-disjoint.csv`.
+
 Use `--data path/to/other.csv` for another CSV with the same Kaggle feature and
 target columns; a missing `id` column is filled from the row index. The command
 writes fold results, repeat-level summaries with 95% confidence intervals and
