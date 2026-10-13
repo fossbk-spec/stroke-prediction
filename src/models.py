@@ -21,6 +21,9 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
+import numpy as np
+from sklearn.model_selection import StratifiedGroupKFold
+
 from sklearn.ensemble import (
     GradientBoostingClassifier,
     RandomForestClassifier,
@@ -138,16 +141,44 @@ def _build_xgboost(**overrides: Any):
     return XGBClassifier(**params)
 
 
+class PatientGroupedStackingClassifier(StackingClassifier):
+    """Generate OOF predictions with patient-disjoint internal folds.
+
+    Each cloned base pipeline fits preprocessing and resampling within its
+    fold. Groups are mandatory so repeated records cannot silently leak.
+    """
+
+    def fit(self, X, y, *, groups=None, **fit_params):
+        if groups is None:
+            raise ValueError("Patient groups are required for stacking.")
+        groups = np.asarray(groups)
+        if len(groups) != len(y):
+            raise ValueError("groups must have one patient ID per record.")
+        splitter = StratifiedGroupKFold(
+            n_splits=self.cv, shuffle=True, random_state=config.RANDOM_STATE
+        )
+        splits = list(splitter.split(X, y, groups))
+        # sklearn's stacking implementation clones each complete base pipeline.
+        original_cv = self.cv
+        try:
+            self.cv = splits
+            result = super().fit(X, y, **fit_params)
+        finally:
+            self.cv = original_cv
+        self.inner_splits_ = splits
+        return result
+
+
 def build_stacking_ensemble(
     *,
     class_weight: str | None = None,
     base_wrapper: Callable[[Any, bool], Any] | None = None,
     **overrides: Any,
-) -> StackingClassifier:
+) -> PatientGroupedStackingClassifier:
     """Stacking Ensemble: diverse base learners + Logistic Regression meta-learner.
 
-    The internal `cv=5` in `StackingClassifier` ensures meta-features are
-    generated from out-of-fold predictions => no leakage from base to meta.
+    Internal StratifiedGroupKFold generates patient-disjoint OOF meta-features.
+    Pass patient IDs via fit(..., groups=patient_ids).
 
     `base_wrapper(estimator, scale)` wraps each base learner (e.g. into a
     preprocessor + SMOTE pipeline) so that SMOTE runs only on the train part of
@@ -172,7 +203,7 @@ def build_stacking_ensemble(
         "n_jobs": None,
     }
     params.update(overrides)
-    return StackingClassifier(**params)
+    return PatientGroupedStackingClassifier(**params)
 
 
 def available_models() -> list[str]:

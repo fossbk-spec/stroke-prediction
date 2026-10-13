@@ -64,9 +64,21 @@ stroke-prediction/
    all records of a patient stay in the same split.
 2. **Fit-on-train-only**: `KNNImputer`, `StandardScaler`, `OneHotEncoder`,
    `SMOTE` are only `fit` on train; validation/test only call `.transform()`.
-3. **SMOTE lives inside the Pipeline** (`imblearn.pipeline.Pipeline`) —
+3. **SMOTENC lives inside the Pipeline** (`imblearn.pipeline.Pipeline`) —
    avoiding the mistake made by Dritsas & Trigka (2022) and Abed et al.
    (2022), who ran SMOTE before cross-validation.
+   SMOTENC resamples imputed raw features before one-hot encoding; categorical
+   and binary columns retain valid categories. Stacking uses patient-grouped
+   internal OOF folds, with preprocessing/resampling fitted inside each fold.
+
+Odds-ratio CIs use a patient-level bootstrap of the full training pipeline:
+`logistic_odds_ratios(pipeline, X_train, y_train, groups=patient_ids,
+n_boot=200, random_state=42)`. `significant` means the percentile coefficient
+CI excludes zero. These are exploratory stability intervals for the regularized,
+resampled procedure, not causal inference or calibrated hypothesis tests.
+Category support and scaling may vary between refits; absent categories receive
+NaN bounds and `significant=False`. Unfit bootstrap resamples raise an error.
+
 4. Every run can be asserted with `verify_zero_data_leakage()` and
    `assert_no_fit_on_holdout()` — see `tests/test_data_leakage.py`.
 

@@ -78,7 +78,9 @@ def run_experiment(
                 estimator, use_smote=use_smote, scale=scale
             )
 
-        pipeline.fit(X_train, y_train)
+        pipeline.fit(X_train, y_train, **(
+            {"groups": split.train[config.ID_COLUMN]} if name == "stacking" else {}
+        ))
 
         # Verify: transforming the hold-out set does not alter the fitted state.
         fitted_pipelines = pipeline.estimators_ if name == "stacking" else [pipeline]

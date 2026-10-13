@@ -26,6 +26,7 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 
+from src.models import PatientGroupedStackingClassifier
 from src import config
 
 
@@ -217,6 +218,7 @@ def cross_validate_grouped(
     for fold, (tr, va) in enumerate(splitter.split(X, y, groups=groups), start=1):
         X_tr, X_va = X.iloc[tr], X.iloc[va]
         y_tr, y_va = y.iloc[tr], y.iloc[va]
+        groups_tr = groups.iloc[tr]
 
         fold_threshold = threshold
         if tune_threshold:
@@ -225,7 +227,11 @@ def cross_validate_grouped(
                 X_tr, y_tr, groups=groups.iloc[tr]
             ):
                 inner_model = clone(pipeline)
-                inner_model.fit(X_tr.iloc[inner_tr], y_tr.iloc[inner_tr])
+                inner_model.fit(
+                    X_tr.iloc[inner_tr], y_tr.iloc[inner_tr],
+                    **({"groups": groups_tr.iloc[inner_tr]}
+                       if isinstance(inner_model, PatientGroupedStackingClassifier) else {}),
+                )
                 oof_proba[inner_va] = predict_proba_positive(inner_model, X_tr.iloc[inner_va])
             if min_recall is not None:
                 fold_threshold = threshold_for_min_recall(y_tr, oof_proba, min_recall=min_recall)
@@ -233,7 +239,9 @@ def cross_validate_grouped(
                 fold_threshold, _ = find_best_threshold(y_tr, oof_proba, beta=beta)
 
         model = clone(pipeline)
-        model.fit(X_tr, y_tr)
+        model.fit(X_tr, y_tr, **(
+            {"groups": groups_tr} if isinstance(model, PatientGroupedStackingClassifier) else {}
+        ))
 
         metrics = compute_metrics(
             y_va, predict_proba_positive(model, X_va), threshold=fold_threshold, beta=beta

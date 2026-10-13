@@ -1,11 +1,11 @@
-- **High — `src/models.py:155`, `src/train.py:81`**: Bản sửa stacking còn thiếu: `cv=5` chia theo bản ghi, không nhận `groups`, nên cùng bệnh nhân có thể xuất hiện ở train và validation nội bộ.
-  **Sửa:** tạo meta-feature OOF theo nhóm bệnh nhân, giữ preprocessing/SMOTE trong từng fold; thêm test stacking với bệnh nhân nhiều bản ghi.
+- **RESOLVED — High — `src/models.py:155`, `src/train.py:81`**: Bản sửa stacking còn thiếu: `cv=5` chia theo bản ghi, không nhận `groups`, nên cùng bệnh nhân có thể xuất hiện ở train và validation nội bộ.
+  **Đã sửa:** StratifiedGroupKFold nội bộ nhận groups từ train và CV; pipeline clone trong từng fold. Test nhiều bản ghi xác nhận không trùng bệnh nhân và mỗi hàng có đúng một dự đoán OOF.
 
-- **High — `src/explainability.py:143`, `tests/test_explainability.py:38`**: CI Wald bỏ intercept, không phản ánh regularization/SMOTE và dùng one-hot đồng tuyến; cờ `significant` không có cơ sở suy luận thống kê, trong khi test chỉ kiểm tra CI bao quanh ước lượng.
-  **Sửa:** bootstrap toàn bộ quy trình theo bệnh nhân hoặc dùng mô hình suy luận phù hợp trên dữ liệu gốc; kiểm chứng CI bằng trường hợp tham chiếu.
+- **RESOLVED — High — `src/explainability.py:143`, `tests/test_explainability.py:38`**: CI Wald bỏ intercept, không phản ánh regularization/SMOTE và dùng one-hot đồng tuyến; cờ `significant` không có cơ sở suy luận thống kê, trong khi test chỉ kiểm tra CI bao quanh ước lượng.
+  **Đã sửa:** bootstrap bệnh nhân, refit toàn bộ pipeline, CI percentile với n_boot/random_state. significant dựa trên CI hệ số loại 0; ghi rõ giới hạn suy luận. Test tham chiếu strong/null và tái lập theo seed.
 
-- **Medium — `src/preprocessing.py:282`**: SMOTE nội suy cả one-hot và biến nhị phân, tạo “bệnh nhân” có giới tính, nghề nghiệp hoặc bệnh nền dạng phân số.
-  **Sửa:** dùng SMOTENC trước one-hot, hoặc đối chiếu với nhánh class-weight không tạo mẫu tổng hợp.
+- **RESOLVED — Medium — `src/preprocessing.py:282`**: SMOTE nội suy cả one-hot và biến nhị phân, tạo “bệnh nhân” có giới tính, nghề nghiệp hoặc bệnh nền dạng phân số.
+  **Đã sửa:** impute -> SMOTENC (categorical + binary) -> one-hot/scaling trong pipeline. Test cân bằng lớp và giá trị categorical/binary hợp lệ.
 
 - **Medium — `src/models.py:74`**: `**overrides` trùng tham số mặc định gây `TypeError`; đã xác nhận với `get_model("random_forest", n_estimators=10)`.
   **Sửa:** gộp dictionary mặc định với overrides trước khi khởi tạo; thêm test override cho từng factory.
@@ -36,3 +36,6 @@
 
 Không thấy Critical; luồng holdout và chọn ngưỡng chính hợp lý, nhưng stacking theo nhóm và suy luận CI cần sửa trước khi tin vào kết luận khoa học.  
 Không sửa tệp; các test đã chọn ngoài SHAP chạy qua, ba test SHAP bị chặn bởi cache Matplotlib trong sandbox chỉ đọc; Logistic Regression khớp README.
+
+Cập nhật: ba finding còn lại ở trên đã được sửa; không tái tạo CSV/figures hoặc chạy notebook. Kết quả lịch sử bên trên được giữ nguyên.
+Kiểm chứng bản sửa: `MPLCONFIGDIR=/tmp/stroke-mpl .venv/bin/pytest -q` — 105 passed, 1 skipped (XGBoost tùy chọn).
