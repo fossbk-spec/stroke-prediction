@@ -1,0 +1,4 @@
+id,doi,year,title,question,decision (INCLUDE/EXCLUDE)
+EPMC_41743673,10.1016/j.ijcrp.2026.200600,2026,The association between liver disease and stroke risk: A cross-sectional study with machine learning in a large-scale Chinese cohort.,association study (liver disease vs stroke) using ML - is prediction the aim?,
+EPMC_40361781,10.3390/healthcare13091003,2025,Evaluation of Machine Learning and Traditional Statistical Models to Assess the Value of Stroke Genetic Liability for Prediction of Risk of Stroke Within the UK Biobank.,ML vs statistical models with genetic liability + clinical factors - genomics-only exclusion?,
+EPMC_33356965,10.1177/0962280220980484,2021,Class imbalance in gradient boosting classification algorithms: Application to experimental stroke data.,class imbalance in gradient boosting on 'experimental stroke data' - human or animal/trial data?,

@@ -65,8 +65,8 @@ stroke-prediction/
 2. **Fit-on-train-only**: `KNNImputer`, `StandardScaler`, `OneHotEncoder`,
    `SMOTE` are only `fit` on train; validation/test only call `.transform()`.
 3. **SMOTENC lives inside the Pipeline** (`imblearn.pipeline.Pipeline`) —
-   avoiding the mistake made by Dritsas & Trigka (2022) and Abed et al.
-   (2022), who ran SMOTE before cross-validation.
+   avoiding the mistake made by Dritsas & Trigka (2022) and Rehman et al.
+   (2023), who ran SMOTE before cross-validation.
    SMOTENC resamples imputed raw features before one-hot encoding; categorical
    and binary columns retain valid categories. Stacking uses patient-grouped
    internal OOF folds, with preprocessing/resampling fitted inside each fold.

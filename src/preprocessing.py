@@ -11,7 +11,7 @@ Mandatory principles of this module:
 3. **SMOTE lives inside the Pipeline**: using `imblearn.pipeline.Pipeline`
    guarantees that during cross-validation, SMOTE only runs on the train
    folds — never on the validation fold. This is exactly the mistake made
-   by Dritsas & Trigka (2022) and Abed et al. (2022), who applied SMOTE to
+   by Dritsas & Trigka (2022) and Rehman et al. (2023), who applied SMOTE to
    the whole dataset before 10-fold CV.
 """
 
