@@ -1,0 +1,30 @@
+[
+  {
+    "database": "pubmed",
+    "query": "(\"stroke\"[tiab] AND (\"risk prediction\"[tiab] OR \"predict*\"[tiab])) AND (\"machine learning\"[tiab] OR \"ensemble\"[tiab] OR \"random forest\"[tiab] OR \"gradient boosting\"[tiab] OR \"SMOTE\"[tiab]) NOT (\"MRI\"[ti] OR \"CT\"[ti] OR \"imaging\"[ti] OR \"outcome after stroke\"[tiab]) AND 2020:2026[dp] AND English[la]",
+    "date": "2026-10-13",
+    "n_results": 0,
+    "status": "error: NCBI eutils không trả về JSON hợp lệ (thường do bị chặn bởi WAF theo IP - xem ghi chú đầu file pubmed_fetcher.py). Nội dung nhận được (200 ký tự đầu): '<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.1//EN\" \"http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd\"> \\n<html>\\n<head>\\n<title>NCBI - WWW Error B"
+  },
+  {
+    "database": "europepmc",
+    "query": "(TITLE_ABS:\"stroke\" AND (TITLE_ABS:\"risk prediction\" OR TITLE_ABS:\"predict*\")) AND (TITLE_ABS:\"machine learning\" OR TITLE_ABS:\"ensemble\" OR TITLE_ABS:\"random forest\" OR TITLE_ABS:\"gradient boosting\" OR TITLE_ABS:\"SMOTE\") NOT (TITLE:\"MRI\" OR TITLE:\"CT\" OR TITLE:\"imaging\") AND PUB_YEAR:[2020 TO 2026] AND LANG:\"eng\" AND (SRC:MED OR SRC:PMC)",
+    "date": "2026-10-13",
+    "n_results": 1011,
+    "status": "ok"
+  },
+  {
+    "database": "openalex",
+    "query": " | filter=from_publication_date:2020-01-01,to_publication_date:2026-12-31,has_doi:true,type:article,language:en,title.search:stroke,title_and_abstract.search:\"machine learning\" prediction risk",
+    "date": "2026-10-13",
+    "n_results": 545,
+    "status": "ok"
+  },
+  {
+    "database": "s2",
+    "query": "stroke risk prediction machine learning imbalanced",
+    "date": "2026-10-13",
+    "n_results": 99,
+    "status": "ok"
+  }
+]

@@ -1,0 +1,9 @@
+{
+  "pubmed": 0,
+  "europepmc": 1011,
+  "openalex": 545,
+  "s2": 99,
+  "total_identified": 1655,
+  "duplicates_removed": 249,
+  "unique_records": 1406
+}

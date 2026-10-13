@@ -1,0 +1,54 @@
+{
+  "review_type": "RAPID REVIEW",
+  "research_question": "Machine learning models using routine clinical/demographic tabular variables to predict stroke risk: what performance (Recall, PR-AUC, ROC-AUC) do they report, and how do the data split protocol and class-imbalance handling (SMOTE, class weighting) affect the reported results?",
+  "framework": "PICO",
+  "pico_elements": {
+    "population": [
+      "stroke",
+      "stroke risk",
+      "cerebrovascular disorders",
+      "ischemic stroke"
+    ],
+    "intervention": [
+      "machine learning",
+      "ensemble learning",
+      "random forest",
+      "gradient boosting",
+      "stacking",
+      "SMOTE",
+      "class imbalance"
+    ],
+    "comparator": [
+      "logistic regression",
+      "Framingham Stroke Risk Profile",
+      "clinical risk score"
+    ],
+    "outcome": [
+      "sensitivity",
+      "recall",
+      "precision-recall AUC",
+      "ROC-AUC",
+      "F1-score",
+      "calibration"
+    ]
+  },
+  "eligibility_criteria": {
+    "inclusion": [
+      "Du doan nguy co dot quy (incident stroke) bang ML tren du lieu dang bang: nhan khau hoc, lam sang, xet nghiem, EHR",
+      "Bao cao it nhat mot chi so dinh luong: Recall/Sensitivity, AUC, F1",
+      "Bai bao binh duyet tren tap chi SJR Q1/Q2 hoac hoi nghi top co double-blind review, xuat ban 2020-2026",
+      "Uu tien: dung bo Kaggle Stroke Prediction Dataset (5,110 mau) hoac co mo ta ro giao thuc chia du lieu va xu ly mat can bang"
+    ],
+    "exclusion": [
+      "Chi dung anh y te (CT/MRI) hoac tin hieu (ECG/EEG) lam dau vao chinh",
+      "Du doan ket cuc sau dot quy (tu vong, phuc hoi chuc nang, tai phat) thay vi nguy co mac moi",
+      "Preprint chua binh duyet, conference abstract, editorial, letter",
+      "Review/meta-analysis: khong dua vao ma tran chinh, chi dung lam boi canh (vd. Soladoye 2025)"
+    ]
+  },
+  "filters": {
+    "year_start": 2020,
+    "year_end": 2026,
+    "languages": ["English"]
+  }
+}
