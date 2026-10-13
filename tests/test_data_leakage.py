@@ -121,7 +121,7 @@ class TestFitOnTrainOnly:
         pipeline = preprocessing.make_full_pipeline(
             DummyClassifier(), numeric_imputer="median"
         )
-        pre = pipeline.named_steps["preprocessor"]
+        pre = pipeline.named_steps["prepare"]
         pre.set_output(transform="pandas")
         smote = pipeline.named_steps["smote"]
         seen = {"fit": [], "fit_resample": []}
@@ -237,7 +237,7 @@ class TestFitOnTrainOnly:
         for _name, base in stacking.estimators:
             assert "smote" in base.named_steps
 
-        stacking.fit(X_train, y_train)
+        stacking.fit(X_train, y_train, groups=split.train[config.ID_COLUMN])
         for fitted in stacking.estimators_:
             assert preprocessing.assert_no_fit_on_holdout(fitted, X_test)
 
@@ -263,3 +263,22 @@ class TestIdentifierLeakage:
         referenced = [c for _n, _t, cols in pre.transformers for c in cols]
         assert config.TARGET_COLUMN not in referenced
         assert config.ID_COLUMN not in referenced
+
+
+def test_stacking_inner_folds_keep_patients_together(multi_record_df):
+    X, y = split_features_target(multi_record_df)
+    groups = multi_record_df[config.ID_COLUMN]
+    assert groups.duplicated().any()
+    stacking = build_stacking_ensemble(
+        estimators=[("lr", preprocessing.make_full_pipeline(get_model("logistic_regression")))],
+        cv=3,
+    )
+    stacking.fit(X, y, groups=groups)
+    seen = np.zeros(len(X), dtype=int)
+    for tr, va in stacking.inner_splits_:
+        assert set(groups.iloc[tr]).isdisjoint(groups.iloc[va])
+        seen[va] += 1
+    assert (seen == 1).all()
+    assert stacking.predict_proba(X).shape == (len(X), 2)
+    with pytest.raises(ValueError, match="groups"):
+        stacking.fit(X, y)

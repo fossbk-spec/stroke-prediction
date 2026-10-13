@@ -6,7 +6,7 @@ help:  ## Show available commands
 setup:  ## Create a virtual environment and install dependencies
 	python3 -m venv .venv
 	.venv/bin/pip install --upgrade pip
-	.venv/bin/pip install -r requirements.txt
+	.venv/bin/pip install -r requirements-dev.txt
 
 data:  ## Download the Kaggle dataset into data/raw/
 	.venv/bin/python scripts/download_data.py

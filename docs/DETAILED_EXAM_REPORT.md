@@ -121,7 +121,8 @@
    - **Binary Encoding:** Áp dụng cho `ever_married` (`Yes`: 1, `No`: 0).
 3. **Chuẩn hóa đặc trưng liên tục (Feature Scaling):**
    - Áp dụng **StandardScaler (Z-score Normalization)** cho `age`, `avg_glucose_level`, `bmi` để đưa về mean = 0, std = 1.
-4. **Cân bằng lớp bằng kỹ thuật SMOTE (Synthetic Minority Over-sampling Technique):**
+4. **Cân bằng lớp bằng SMOTENC trước One-Hot Encoding:**
+   - Impute trên Train trước SMOTENC; khai báo các biến categorical và binary là categorical để không sinh giá trị phân số. Stacking tạo meta-feature OOF bằng StratifiedGroupKFold theo Patient ID, fit toàn bộ pipeline trong từng fold.
    - Sinh mẫu nhân tạo cho lớp thiểu số ($Y=1$) trên tập Train để đưa tỷ lệ về mức cân bằng (50:50 hoặc 30:70), giúp mô hình học được biên phân chia hiệu quả.
 
 ### Câu 4.2: Kỷ luật chống rò rỉ dữ liệu tuyệt đối (Zero Data Leakage)
@@ -137,70 +138,22 @@
 4. **Đoạn mã Python Assertion Code kiểm chứng Zero Data Leakage:**
 
 ```python
-import pandas as pd
-import numpy as np
-from sklearn.model_selection import StratifiedGroupKFold
-from imblearn.over_sampling import SMOTE
-from sklearn.preprocessing import StandardScaler
-from sklearn.impute import KNNImputer
+from src.data_loader import split_features_target
+from src.models import get_model
+from src.preprocessing import (
+    make_full_pipeline, patient_level_split, verify_zero_data_leakage,
+)
 
-def verify_zero_data_leakage(train_df, val_df, test_df, id_column="id"):
-    """
-    Hàm kiểm tra kỷ luật Zero Data Leakage cấp độ Patient ID.
-    Trả về True nếu không phát sinh rò rỉ dữ liệu giữa các tập.
-    """
-    train_ids = set(train_df[id_column])
-    val_ids = set(val_df[id_column])
-    test_ids = set(test_df[id_column])
-    
-    # Kiểm tra tập giao giữa các tập dữ liệu
-    train_val_overlap = train_ids.intersection(val_ids)
-    train_test_overlap = train_ids.intersection(test_ids)
-    val_test_overlap = val_ids.intersection(test_ids)
-    
-    assert len(train_val_overlap) == 0, f"RÒ RỈ DỮ LIỆU! Có {len(train_val_overlap)} ID xuất hiện ở cả Train và Validation."
-    assert len(train_test_overlap) == 0, f"RÒ RỈ DỮ LIỆU! Có {len(train_test_overlap)} ID xuất hiện ở cả Train và Test."
-    assert len(val_test_overlap) == 0, f"RÒ RỈ DỮ LIỆU! Có {len(val_test_overlap)} ID xuất hiện ở cả Validation và Test."
-    
-    print("✅ XÁC NHẬN ZERO DATA LEAKAGE: Không có bất kỳ Patient ID nào bị rò rỉ giữa các tập dữ liệu!")
-    return True
 
-# Pipeline tiền xử lý tuân thủ kỉ luật Fit-on-Train-Only
 def run_clean_preprocessing_pipeline(df):
-    # 1. Phân chia Train / Test theo StratifiedGroupKFold
-    sgkf = StratifiedGroupKFold(n_splits=5)
-    train_idx, test_idx = next(sgkf.split(df, df['stroke'], groups=df['id']))
-    
-    train_data = df.iloc[train_idx].copy()
-    test_data = df.iloc[test_idx].copy()
-    
-    # Kiểm tra rò rỉ ID
-    verify_zero_data_leakage(train_data, train_data, test_data, id_column="id")
-    
-    # 2. Fit Imputer chỉ trên Train
-    imputer = KNNImputer(n_neighbors=5)
-    num_cols = ['age', 'avg_glucose_level', 'bmi']
-    
-    train_data[num_cols] = imputer.fit_transform(train_data[num_cols])
-    test_data[num_cols] = imputer.transform(test_data[num_cols]) # CHỈ transform trên Test!
-    
-    # 3. Fit Scaler chỉ trên Train
-    scaler = StandardScaler()
-    train_data[num_cols] = scaler.fit_transform(train_data[num_cols])
-    test_data[num_cols] = scaler.transform(test_data[num_cols]) # CHỈ transform trên Test!
-    
-    # 4. Fit SMOTE chỉ trên Train
-    X_train = train_data.drop(columns=['id', 'stroke'])
-    y_train = train_data['stroke']
-    
-    # Biến đổi các cột categorical trước khi SMOTE...
-    X_train_encoded = pd.get_dummies(X_train, drop_first=True)
-    
-    smote = SMOTE(random_state=42)
-    X_train_resampled, y_train_resampled = smote.fit_resample(X_train_encoded, y_train)
-    
-    print(f"Hoàn thành tiền xử lý an toàn! Kích thước Train trước SMOTE: {X_train.shape}, Sau SMOTE: {X_train_resampled.shape}")
-    return X_train_resampled, y_train_resampled, test_data
+    split = patient_level_split(df)
+    verify_zero_data_leakage(split.train, split.val, split.test)
+    X_train, y_train = split_features_target(split.train)
+    X_test, _ = split_features_target(split.test)
+    # Impute -> SMOTENC -> One-Hot/Scaler -> model; fit chỉ trên Train.
+    pipeline = make_full_pipeline(get_model("logistic_regression"))
+    pipeline.fit(X_train, y_train)
+    return pipeline, pipeline.predict_proba(X_test)
 ```
 
 ---

@@ -71,3 +71,18 @@ class TestProfile:
         assert (df[config.TARGET_COLUMN] == 1).sum() == 49
         assert df["bmi"].isna().sum() > 0
         assert list(df.columns) == config.EXPECTED_COLUMNS
+
+
+@pytest.mark.parametrize("label", [None, np.nan, "not-a-label", 0.5])
+@pytest.mark.parametrize("from_csv", [False, True])
+def test_bad_target_rejected_at_validation(synthetic_df, tmp_path, label, from_csv):
+    df = synthetic_df.copy()
+    df[config.TARGET_COLUMN] = df[config.TARGET_COLUMN].astype(object)
+    df.loc[0, config.TARGET_COLUMN] = label
+    with pytest.raises(SchemaValidationError, match="Target column 'stroke'"):
+        if from_csv:
+            path = tmp_path / "bad.csv"
+            df.to_csv(path, index=False)
+            load_raw_data(path)
+        else:
+            validate_schema(df)

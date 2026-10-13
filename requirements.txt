@@ -1,28 +1,29 @@
 # Project N22 - Stroke Prediction using Machine Learning
 # Cai dat:  pip install -r requirements.txt
 
+# Versions with Python 3.10-3.13 support; ranges exclude releases dropping 3.10.
 # --- Nen tang xu ly du lieu ---
-pandas>=2.0
-numpy>=1.24
-scipy>=1.11
+pandas>=2.2.3,<3.0
+numpy>=2.1.0,<2.3
+scipy>=1.14.1,<1.16
 
 # --- Hoc may ---
-scikit-learn>=1.4           # Pipeline, ColumnTransformer, StratifiedGroupKFold
-imbalanced-learn>=0.12      # SMOTE + imblearn.pipeline (chong SMOTE leakage)
+scikit-learn>=1.6.1,<1.8           # Pipeline, ColumnTransformer, StratifiedGroupKFold
+imbalanced-learn==0.14.2      # SMOTE + imblearn.pipeline (chong SMOTE leakage)
 
 # --- Truc quan hoa ---
-matplotlib>=3.7
-seaborn>=0.13
+matplotlib>=3.9.2,<3.11
+seaborn==0.13.2
 
 # --- Giai thich mo hinh (XAI) ---
-shap>=0.44
+shap>=0.46.0,<0.50
 
 # --- Kiem thu ---
-pytest>=8.0
+pytest==9.1.1
 
 # --- Notebook ---
-jupyter>=1.0
-ipykernel>=6.25
+jupyter==1.1.1
+ipykernel>=6.29.5,<7
 
 # --- Tuy chon ---
 # xgboost>=2.0              # macOS can them: brew install libomp

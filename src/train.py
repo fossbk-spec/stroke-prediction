@@ -78,10 +78,12 @@ def run_experiment(
                 estimator, use_smote=use_smote, scale=scale
             )
 
-        pipeline.fit(X_train, y_train)
+        models.fit_with_groups(pipeline, X_train, y_train, split.train[config.ID_COLUMN])
 
         # Verify: transforming the hold-out set does not alter the fitted state.
-        fitted_pipelines = pipeline.estimators_ if name == "stacking" else [pipeline]
+        fitted_pipelines = (pipeline.estimators_
+                            if isinstance(pipeline, models.PatientGroupedStackingClassifier)
+                            else [pipeline])
         for fitted in fitted_pipelines:
             preprocessing.assert_no_fit_on_holdout(fitted, X_test)
 

@@ -23,7 +23,7 @@ from src import config
 def _transformed_frame(pipeline, X: pd.DataFrame) -> pd.DataFrame:
     """Apply the pipeline's preprocessing step and return a named DataFrame."""
     pre = pipeline.named_steps["preprocessor"]
-    matrix = pre.transform(X)
+    matrix = pipeline[:-1].transform(X)
     try:
         names = list(pre.get_feature_names_out())
     except Exception:  # pragma: no cover
@@ -84,7 +84,8 @@ def tree_feature_importance(pipeline) -> pd.DataFrame:
 
 
 def logistic_odds_ratios(
-    pipeline, X: pd.DataFrame | None = None, *, alpha: float = 0.05
+    pipeline, X: pd.DataFrame | None = None, y=None, *, groups=None,
+    alpha: float = 0.05, n_boot: int = 200, random_state: int = config.RANDOM_STATE
 ) -> pd.DataFrame:
     """Convert Logistic Regression coefficients to Odds Ratio = exp(beta).
 
@@ -92,12 +93,15 @@ def logistic_odds_ratios(
     feature (for a standardized feature: 1 standard deviation), the odds of
     stroke increase 2.5x. OR < 1 is a protective factor.
 
-    Args:
-        X: if provided, also computes Wald confidence intervals from the
-            log-likelihood Hessian: SE = sqrt(diag((X' W X)^-1)) with
-            W = diag(p(1-p)). Note: when the pipeline includes SMOTE, this CI
-            is only indicative since the coefficients were learned on
-            oversampled data.
+    For percentile CIs, supply the ORIGINAL training X, y and patient groups.
+    Each bootstrap samples patients with replacement (all their records) and
+    refits the full pipeline, including intercept, regularization and SMOTENC.
+    `significant` means the coefficient CI excludes zero; these are exploratory
+    stability intervals for this fitted procedure, not causal effects or
+    calibrated hypothesis tests. Scaling and category support can vary by fit.
+    A feature absent in any replicate receives NaN CI bounds and significant=False.
+    Degenerate resamples that cannot fit the pipeline raise rather than being
+    silently discarded.
     """
     model = pipeline.named_steps["model"]
     if not hasattr(model, "coef_"):
@@ -117,10 +121,13 @@ def logistic_odds_ratios(
     )
 
     if X is not None:
-        lower, upper = _wald_odds_ratio_ci(pipeline, X, beta, alpha=alpha)
-        out["or_ci_lower"] = lower
-        out["or_ci_upper"] = upper
-        out["significant"] = ~((lower < 1) & (upper > 1))
+        lower, upper = _bootstrap_coefficient_ci(
+            pipeline, X, y, groups, names, alpha=alpha,
+            n_boot=n_boot, random_state=random_state,
+        )
+        out["or_ci_lower"] = np.exp(lower)
+        out["or_ci_upper"] = np.exp(upper)
+        out["significant"] = (lower > 0) | (upper < 0)
 
     out["abs_effect"] = out["coefficient"].abs()
     return (
@@ -130,28 +137,35 @@ def logistic_odds_ratios(
     )
 
 
-def _wald_odds_ratio_ci(
-    pipeline, X: pd.DataFrame, beta: np.ndarray, *, alpha: float = 0.05
+def _bootstrap_coefficient_ci(
+    pipeline, X, y, groups, names, *, alpha, n_boot, random_state
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Wald confidence interval for the odds ratio on cohort `X`."""
-    from scipy.stats import norm
+    """Cluster bootstrap with feature-name alignment when categories disappear."""
+    from sklearn.base import clone
 
-    design = _transformed_frame(pipeline, X).to_numpy(dtype=float)
-    proba = np.asarray(pipeline.predict_proba(X))[:, 1]
-    weights = np.clip(proba * (1 - proba), 1e-10, None)
-
-    fisher = design.T @ (design * weights[:, None])
-    # Small Tikhonov regularization so the matrix stays invertible when
-    # features are near-collinear (e.g. `gender_Other` has only 1 sample).
-    ridge = 1e-8 * np.eye(fisher.shape[0])
-    standard_errors = np.sqrt(np.diag(np.linalg.pinv(fisher + ridge)))
-
-    z = norm.ppf(1 - alpha / 2)
-    # Clip the exponent before exp(): near-collinear features give very
-    # large SE -> exp() would otherwise overflow.
-    lower = np.exp(np.clip(beta - z * standard_errors, -700, 700))
-    upper = np.exp(np.clip(beta + z * standard_errors, -700, 700))
-    return lower, upper
+    if y is None or groups is None:
+        raise ValueError("Bootstrap CIs require training y and patient groups.")
+    y, groups = np.asarray(y), np.asarray(groups)
+    if len(y) != len(X) or len(groups) != len(X):
+        raise ValueError("X, y and groups must have equal lengths.")
+    if not 0 < alpha < 1 or n_boot < 2:
+        raise ValueError("Require 0 < alpha < 1 and n_boot >= 2.")
+    if pd.isna(groups).any():
+        raise ValueError("Patient groups cannot contain missing IDs.")
+    patients = pd.unique(groups)
+    records = [np.flatnonzero(groups == patient) for patient in patients]
+    rng = np.random.default_rng(random_state)
+    coefficients = []
+    for _ in range(n_boot):
+        rows = np.concatenate([records[i] for i in rng.integers(len(patients), size=len(patients))])
+        fitted = clone(pipeline).fit(X.iloc[rows], y[rows])
+        boot_names = fitted.named_steps["preprocessor"].get_feature_names_out()
+        values = pd.Series(fitted.named_steps["model"].coef_.ravel(), index=boot_names)
+        # An absent category has no estimable coefficient in this replicate.
+        coefficients.append(values.reindex(names).to_numpy())
+    samples = np.asarray(coefficients)
+    # Do not claim intervals for features absent from any bootstrap replicate.
+    return tuple(np.quantile(samples, [alpha / 2, 1 - alpha / 2], axis=0))
 
 
 def shap_summary(

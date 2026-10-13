@@ -17,7 +17,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install ruff
-        run: pip install ruff
+        run: python -m pip install -r requirements-dev.txt
       - name: Check syntax / imports
         run: ruff check src tests scripts
       - name: Check formatting
@@ -37,11 +37,13 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
-          cache-dependency-path: requirements.txt
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          python -m pip install -r requirements-dev.txt
       - name: Run the full test suite
         run: python -m pytest -v
 
@@ -55,11 +57,13 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
-          cache-dependency-path: requirements.txt
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          python -m pip install -r requirements-dev.txt
 
       # Quality gate: every data-leakage test MUST pass, otherwise -> block the merge.
       - name: Check the patient-level split & fit-on-train-only discipline
@@ -67,6 +71,15 @@ jobs:
 
       - name: Run the end-to-end pipeline on synthetic data
         run: python -m src.train --synthetic --models logistic_regression random_forest --no-cv
+
+      - name: Smoke test with CV and stacking
+        run: |
+          python - <<'PY'
+          from src.data_loader import make_synthetic_dataset
+          from src.train import run_experiment
+          run_experiment(make_synthetic_dataset(n_rows=160, positive_rate=0.25),
+                         ["naive_bayes", "stacking"], use_smote=False, run_cv=True)
+          PY
 
       - name: Run EDA end-to-end on synthetic data
         run: python scripts/run_eda.py --synthetic

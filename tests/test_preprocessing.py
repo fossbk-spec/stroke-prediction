@@ -107,12 +107,16 @@ class TestScaler:
 class TestSmote:
     def test_smote_balances_training_classes(self, synthetic_df):
         """SMOTE brings the train class ratio to 50:50."""
-        from imblearn.over_sampling import SMOTE
-
         X, y = split_features_target(synthetic_df)
-        pre = preprocessing.make_preprocessor()
-        matrix = pre.fit_transform(X, y)
-        X_res, y_res = SMOTE(random_state=config.RANDOM_STATE).fit_resample(matrix, y)
+        pipeline = preprocessing.make_full_pipeline(get_model("logistic_regression"))
+        prepared = pipeline.named_steps["prepare"].fit_transform(X, y)
+        X_res, y_res = pipeline.named_steps["smote"].fit_resample(prepared, y)
+        categorical = (config.BINARY_FEATURES + config.ORDINAL_BINARY_FEATURES
+                       + config.NOMINAL_FEATURES)
+        for column in categorical:
+            assert set(X_res[column]) <= set(prepared[column])
+        for column in config.BINARY_FEATURES:
+            assert set(X_res[column]) <= {0, 1}
         assert (y_res == 1).sum() == (y_res == 0).sum()
         assert len(X_res) > len(X)
 

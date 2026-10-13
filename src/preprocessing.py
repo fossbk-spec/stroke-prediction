@@ -23,7 +23,7 @@ from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
-from imblearn.over_sampling import SMOTE
+from imblearn.over_sampling import SMOTENC
 from imblearn.pipeline import Pipeline as ImbPipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import KNNImputer, SimpleImputer
@@ -229,8 +229,8 @@ def make_preprocessor(
     )
 
 
-class AdaptiveSMOTE(SMOTE):
-    """SMOTE that caps `k_neighbors` to the minority-class size seen at fit time.
+class AdaptiveSMOTE(SMOTENC):
+    """SMOTENC that caps `k_neighbors` to the minority-class size seen at fit time.
 
     A plain `SMOTE(k_neighbors=5)` crashes with an opaque scikit-learn error
     when a (CV) training fold has fewer than 6 minority samples. This variant
@@ -252,7 +252,7 @@ class AdaptiveSMOTE(SMOTE):
                 f"k_neighbors from {self.k_neighbors} to {k_neighbors}.",
                 stacklevel=2,
             )
-        smote = SMOTE(**{**self.get_params(), "k_neighbors": k_neighbors})
+        smote = SMOTENC(**{**self.get_params(), "k_neighbors": k_neighbors})
         return smote.fit_resample(X, y, **params)
 
 
@@ -263,23 +263,36 @@ def make_full_pipeline(
     smote_strategy: float | str = "auto",
     smote_k_neighbors: int = 5,
     numeric_imputer: str = "knn",
+    knn_neighbors: int = 5,
     scale: bool = True,
     random_state: int = config.RANDOM_STATE,
 ) -> ImbPipeline:
-    """Combine preprocessing + SMOTE + model into a SINGLE pipeline.
+    """Combine raw imputation + SMOTENC + encoding/scaling + model.
 
     Placing SMOTE INSIDE the pipeline is the key anti-leakage design choice:
     when the pipeline is passed to `cross_val_score` / `GridSearchCV`,
     `fit_resample` is only ever called on the train portion of each fold.
     """
     steps: list[tuple[str, object]] = [
-        ("preprocessor", make_preprocessor(numeric_imputer=numeric_imputer, scale=scale))
+        ("preprocessor", make_preprocessor(numeric_imputer=numeric_imputer,
+                                            knn_neighbors=knn_neighbors, scale=scale))
     ]
     if use_smote:
-        steps.append(
+        # Impute raw categories before resampling; one-hot encoding follows it.
+        categorical = (config.BINARY_FEATURES + config.ORDINAL_BINARY_FEATURES
+                       + config.NOMINAL_FEATURES)
+        preparation = ColumnTransformer(
+            [("num", SimpleImputer(strategy="median") if numeric_imputer == "median"
+              else KNNImputer(n_neighbors=knn_neighbors, weights="distance"), config.NUMERIC_FEATURES),
+             ("cat", SimpleImputer(strategy="most_frequent"), categorical)],
+            verbose_feature_names_out=False,
+        ).set_output(transform="pandas")
+        steps.insert(0, ("prepare", preparation))
+        steps.insert(1,
             (
                 "smote",
                 AdaptiveSMOTE(
+                    categorical_features=categorical,
                     sampling_strategy=smote_strategy,
                     random_state=random_state,
                     k_neighbors=smote_k_neighbors,
@@ -314,10 +327,11 @@ def assert_no_fit_on_holdout(pipeline: ImbPipeline, X_holdout: pd.DataFrame) -> 
     categories_, imputer's learned data) before and after calling `transform` on the hold-out set: if
     they change, a `fit` was mistakenly performed on hold-out data.
     """
-    pre: ColumnTransformer = pipeline.named_steps["preprocessor"]
-    before = _fitted_state(pre)
-    pre.transform(X_holdout)
-    after = _fitted_state(pre)
+    preprocessors = [pipeline.named_steps[name] for name in ("prepare", "preprocessor")
+                     if name in pipeline.named_steps]
+    before = [_fitted_state(pre) for pre in preprocessors]
+    pipeline[:-1].transform(X_holdout)
+    after = [_fitted_state(pre) for pre in preprocessors]
     if before != after:
         raise DataLeakageError(
             "DATA LEAKAGE DETECTED! The preprocessor's state changed after "
