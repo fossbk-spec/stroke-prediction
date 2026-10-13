@@ -39,6 +39,8 @@ def run_experiment(
     beta: float = config.F_BETA,
     min_recall: float | None = None,
     run_cv: bool = True,
+    cv_repeats: int = 1,
+    n_boot: int = 1000,
     output_dir: Path | None = None,
 ) -> tuple[pd.DataFrame, dict[str, pd.DataFrame]]:
     """Train + evaluate multiple models under the Zero Data Leakage protocol.
@@ -59,6 +61,7 @@ def run_experiment(
 
     results: list[evaluation.EvaluationResult] = []
     cv_tables: dict[str, pd.DataFrame] = {}
+    bootstrap_tables: list[pd.DataFrame] = []
 
     for name in model_names:
         print(f"\n=== {name} (smote={use_smote}, class_weight={class_weight}) ===")
@@ -101,6 +104,30 @@ def run_experiment(
         print(result)
         results.append(result)
 
+        if output_dir is not None:
+            import matplotlib.pyplot as plt
+
+            output_dir.mkdir(parents=True, exist_ok=True)
+            figures_dir = output_dir / "figures"
+            figures_dir.mkdir(parents=True, exist_ok=True)
+            test_proba = evaluation.predict_proba_positive(pipeline, X_test)
+            ci_table = evaluation.bootstrap_metrics(
+                y_test, test_proba, split.test[config.ID_COLUMN],
+                threshold=threshold, beta=beta, n_boot=n_boot,
+            )
+            ci_table.to_csv(output_dir / f"test_bootstrap_ci_{name}.csv", index=False)
+            bootstrap_tables.append(ci_table.assign(model=name))
+            evaluation.calibration_table(y_test, test_proba).to_csv(
+                output_dir / f"calibration_{name}.csv", index=False
+            )
+            ax = evaluation.plot_calibration(y_test, test_proba, label=name)
+            ax.figure.savefig(figures_dir / f"calibration_{name}.png", dpi=150,
+                              bbox_inches="tight")
+            plt.close(ax.figure)
+            evaluation.subgroup_metrics(
+                X_test, y_test, test_proba, threshold=threshold, beta=beta
+            ).to_csv(output_dir / f"subgroup_{name}.csv", index=False)
+
         if run_cv:
             train_val = pd.concat([split.train, split.val], ignore_index=True)
             X_tv, y_tv = split_features_target(train_val)
@@ -111,6 +138,7 @@ def run_experiment(
                 train_val[config.ID_COLUMN],
                 beta=beta,
                 min_recall=min_recall,
+                n_repeats=cv_repeats,
             )
             print("  CV (train+val):")
             print("   ", evaluation.summarize_cv(cv_tables[name]).to_dict())
@@ -122,6 +150,9 @@ def run_experiment(
         table.to_csv(output_dir / "model_comparison.csv", index=False)
         for name, cv in cv_tables.items():
             cv.to_csv(output_dir / f"cv_{name}.csv")
+        pd.concat(bootstrap_tables, ignore_index=True)[
+            ["model", "metric", "point", "lower", "upper"]
+        ].to_csv(output_dir / "test_bootstrap_ci.csv", index=False)
         (output_dir / "split_summary.json").write_text(
             json.dumps(split.summary().to_dict(orient="records"), indent=2), encoding="utf-8"
         )
@@ -141,6 +172,10 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--min-recall", type=float, default=None,
                         help="Set the threshold under a minimum Recall constraint (e.g. 0.8).")
     parser.add_argument("--no-cv", action="store_true", help="Skip cross-validation.")
+    parser.add_argument("--cv-repeats", type=int, default=1,
+                        help="Number of grouped cross-validation repeats.")
+    parser.add_argument("--n-boot", type=int, default=1000,
+                        help="Number of patient bootstrap resamples for test confidence intervals.")
     parser.add_argument("--synthetic", action="store_true",
                         help="Use synthetic data (when the raw CSV isn't available).")
     parser.add_argument("--data", default=None, help="Optional custom CSV path.")
@@ -167,6 +202,8 @@ def main(argv: list[str] | None = None) -> int:
         beta=args.beta,
         min_recall=args.min_recall,
         run_cv=not args.no_cv,
+        cv_repeats=args.cv_repeats,
+        n_boot=args.n_boot,
         output_dir=Path(args.output),
     )
 

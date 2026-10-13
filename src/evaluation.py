@@ -97,6 +97,126 @@ def compute_metrics(
     }
 
 
+def bootstrap_metrics(
+    y_true: np.ndarray | pd.Series,
+    y_proba: np.ndarray | pd.Series,
+    groups: np.ndarray | pd.Series,
+    *,
+    threshold: float,
+    beta: float = config.F_BETA,
+    n_boot: int = 1000,
+    ci: float = 0.95,
+    random_state: int = config.RANDOM_STATE,
+) -> pd.DataFrame:
+    """Percentile confidence intervals from resampled patient IDs.
+
+    Every selected patient contributes all of their rows, including when the
+    patient is drawn more than once. The decision threshold remains fixed.
+    """
+    y = np.asarray(y_true).astype(int)
+    proba = np.asarray(y_proba, dtype=float)
+    group_ids = np.asarray(groups)
+    if not (len(y) == len(proba) == len(group_ids)) or not len(y):
+        raise ValueError("y_true, y_proba and groups must have equal nonzero lengths.")
+    if n_boot < 1 or not 0 < ci < 1:
+        raise ValueError("n_boot must be positive and ci must be between 0 and 1.")
+
+    codes, unique_groups = pd.factorize(group_ids, sort=False)
+    if (codes < 0).any():
+        raise ValueError("groups must not contain missing patient IDs.")
+    row_indices = [np.flatnonzero(codes == i) for i in range(len(unique_groups))]
+    metric_names = ["recall", "precision", "pr_auc", f"f{beta:g}",
+                    "roc_auc", "specificity", "brier"]
+    point = compute_metrics(y, proba, threshold=threshold, beta=beta)
+    samples: dict[str, list[float]] = {name: [] for name in metric_names}
+    skipped = 0
+    rng = np.random.default_rng(random_state)
+    for _ in range(n_boot):
+        drawn = rng.integers(0, len(row_indices), size=len(row_indices))
+        rows = np.concatenate([row_indices[i] for i in drawn])
+        if np.unique(y[rows]).size < 2:
+            skipped += 1
+            continue
+        metrics = compute_metrics(y[rows], proba[rows], threshold=threshold, beta=beta)
+        for name in metric_names:
+            samples[name].append(metrics[name])
+
+    alpha = (1 - ci) / 2
+    result = []
+    for name in metric_names:
+        values = samples[name]
+        if values:
+            lower, upper = np.quantile(values, [alpha, 1 - alpha])
+        else:
+            lower = upper = np.nan
+        result.append({"metric": name, "point": point[name], "lower": lower,
+                       "upper": upper, "n_valid": len(values), "n_skipped": skipped})
+    return pd.DataFrame(result)
+
+
+def calibration_table(
+    y_true: np.ndarray | pd.Series,
+    y_proba: np.ndarray | pd.Series,
+    n_bins: int = 10,
+    strategy: str = "quantile",
+) -> pd.DataFrame:
+    """Observed event rate and mean predicted risk in each nonempty bin."""
+    y = np.asarray(y_true).astype(int)
+    proba = np.asarray(y_proba, dtype=float)
+    if len(y) != len(proba) or not len(y):
+        raise ValueError("y_true and y_proba must have equal nonzero lengths.")
+    if n_bins < 1 or strategy not in {"quantile", "uniform"}:
+        raise ValueError("n_bins must be positive; strategy must be quantile or uniform.")
+    if strategy == "quantile":
+        bins = pd.qcut(proba, q=n_bins, labels=False, duplicates="drop")
+        # All identical probabilities have no quantile cuts.
+        if pd.isna(bins).all():
+            bins = np.zeros(len(proba), dtype=int)
+    else:
+        bins = np.minimum((proba * n_bins).astype(int), n_bins - 1)
+    frame = pd.DataFrame({"bin": bins, "y": y, "proba": proba})
+    return (frame.groupby("bin", sort=True)
+            .agg(mean_predicted=("proba", "mean"), observed_rate=("y", "mean"),
+                 count=("y", "size"))
+            .reset_index())
+
+
+def subgroup_metrics(
+    X: pd.DataFrame,
+    y_true: np.ndarray | pd.Series,
+    y_proba: np.ndarray | pd.Series,
+    *,
+    threshold: float,
+    beta: float = config.F_BETA,
+) -> pd.DataFrame:
+    """Descriptive test metrics by gender and prespecified age band."""
+    y = np.asarray(y_true).astype(int)
+    proba = np.asarray(y_proba, dtype=float)
+    if len(X) != len(y) or len(y) != len(proba):
+        raise ValueError("X, y_true and y_proba must have equal lengths.")
+    age = np.asarray(X["age"], dtype=float)
+    gender = np.asarray(X["gender"])
+    age_band = np.select([age < 45, age < 65, age >= 65],
+                         ["<45", "45-64", ">=65"], default="missing")
+    rows = []
+    for subgroup, levels, values in (
+        ("gender", ("Male", "Female", "Other"), gender),
+        ("age_band", ("<45", "45-64", ">=65"), age_band),
+    ):
+        for level in levels:
+            mask = values == level
+            n = int(mask.sum())
+            if not n or (level == "Other" and n < 5):
+                continue
+            metrics = compute_metrics(y[mask], proba[mask], threshold=threshold, beta=beta)
+            rows.append({"subgroup": subgroup, "level": level, "n": n,
+                         "n_positive": int(y[mask].sum()), "recall": metrics["recall"],
+                         "precision": metrics["precision"], "roc_auc": metrics["roc_auc"],
+                         "brier": metrics["brier"]})
+    return pd.DataFrame(rows, columns=["subgroup", "level", "n", "n_positive",
+                                        "recall", "precision", "roc_auc", "brier"])
+
+
 def evaluate_model(
     model,
     X,
@@ -198,6 +318,7 @@ def cross_validate_grouped(
     tune_threshold: bool = True,
     min_recall: float | None = None,
     inner_splits: int = 3,
+    n_repeats: int = 1,
 ) -> pd.DataFrame:
     """Cross-validation with `StratifiedGroupKFold` + optional per-fold threshold tuning.
 
@@ -212,37 +333,42 @@ def cross_validate_grouped(
 
     from src.preprocessing import cv_splitter
 
-    splitter = cv_splitter(n_splits=n_splits)
-    rows: list[dict[str, float]] = []
+    if n_repeats < 1:
+        raise ValueError("n_repeats must be positive.")
+    rows: list[dict[str, float | int | str]] = []
 
-    for fold, (tr, va) in enumerate(splitter.split(X, y, groups=groups), start=1):
-        X_tr, X_va = X.iloc[tr], X.iloc[va]
-        y_tr, y_va = y.iloc[tr], y.iloc[va]
-        groups_tr = groups.iloc[tr]
+    for repeat in range(n_repeats):
+        seed = config.RANDOM_STATE + repeat
+        splitter = cv_splitter(n_splits=n_splits, random_state=seed)
+        for fold, (tr, va) in enumerate(splitter.split(X, y, groups=groups), start=1):
+            X_tr, X_va = X.iloc[tr], X.iloc[va]
+            y_tr, y_va = y.iloc[tr], y.iloc[va]
+            groups_tr = groups.iloc[tr]
 
-        fold_threshold = threshold
-        if tune_threshold:
-            oof_proba = np.empty(len(y_tr), dtype=float)
-            for inner_tr, inner_va in cv_splitter(n_splits=inner_splits).split(
-                X_tr, y_tr, groups=groups.iloc[tr]
-            ):
-                inner_model = clone(pipeline)
-                fit_with_groups(inner_model, X_tr.iloc[inner_tr], y_tr.iloc[inner_tr],
-                                groups_tr.iloc[inner_tr])
-                oof_proba[inner_va] = predict_proba_positive(inner_model, X_tr.iloc[inner_va])
-            if min_recall is not None:
-                fold_threshold = threshold_for_min_recall(y_tr, oof_proba, min_recall=min_recall)
-            else:
-                fold_threshold, _ = find_best_threshold(y_tr, oof_proba, beta=beta)
+            fold_threshold = threshold
+            if tune_threshold:
+                oof_proba = np.empty(len(y_tr), dtype=float)
+                for inner_tr, inner_va in cv_splitter(
+                    n_splits=inner_splits, random_state=seed
+                ).split(X_tr, y_tr, groups=groups_tr):
+                    inner_model = clone(pipeline)
+                    fit_with_groups(inner_model, X_tr.iloc[inner_tr], y_tr.iloc[inner_tr],
+                                    groups_tr.iloc[inner_tr])
+                    oof_proba[inner_va] = predict_proba_positive(inner_model, X_tr.iloc[inner_va])
+                if min_recall is not None:
+                    fold_threshold = threshold_for_min_recall(y_tr, oof_proba, min_recall=min_recall)
+                else:
+                    fold_threshold, _ = find_best_threshold(y_tr, oof_proba, beta=beta)
 
-        model = clone(pipeline)
-        fit_with_groups(model, X_tr, y_tr, groups_tr)
+            model = clone(pipeline)
+            fit_with_groups(model, X_tr, y_tr, groups_tr)
 
-        metrics = compute_metrics(
-            y_va, predict_proba_positive(model, X_va), threshold=fold_threshold, beta=beta
-        )
-        metrics.update({"fold": fold, "threshold": fold_threshold})
-        rows.append(metrics)
+            metrics = compute_metrics(
+                y_va, predict_proba_positive(model, X_va), threshold=fold_threshold, beta=beta
+            )
+            metrics.update({"fold": f"{repeat + 1}-{fold}", "repeat": repeat + 1,
+                            "threshold": fold_threshold})
+            rows.append(metrics)
 
     return pd.DataFrame(rows).set_index("fold")
 
@@ -301,4 +427,22 @@ def plot_pr_curve(y_true, y_proba, *, label: str = "model", ax=None):  # pragma:
     ax.set_ylabel("Precision")
     ax.set_title("Precision-Recall Curve")
     ax.legend(loc="upper right", fontsize=8)
+    return ax
+
+
+def plot_calibration(
+    y_true, y_proba, *, n_bins: int = 10, strategy: str = "quantile",
+    label: str = "model", ax=None,
+):  # pragma: no cover - plotting
+    """Plot observed event rates against mean predicted probabilities."""
+    import matplotlib.pyplot as plt
+
+    if ax is None:
+        _fig, ax = plt.subplots(figsize=(5, 4))
+    table = calibration_table(y_true, y_proba, n_bins=n_bins, strategy=strategy)
+    ax.plot([0, 1], [0, 1], ls="--", c="grey", lw=1, label="Perfect calibration")
+    ax.plot(table["mean_predicted"], table["observed_rate"], marker="o", label=label)
+    ax.set(xlim=(0, 1), ylim=(0, 1), xlabel="Mean predicted probability",
+           ylabel="Observed event rate", title="Calibration")
+    ax.legend()
     return ax
