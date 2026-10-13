@@ -1,0 +1,23 @@
+[
+  {
+    "split": "train",
+    "n_samples": 3270,
+    "n_patients": 3270,
+    "n_positive": 159,
+    "positive_rate": 0.04862385321100918
+  },
+  {
+    "split": "val",
+    "n_samples": 818,
+    "n_patients": 818,
+    "n_positive": 40,
+    "positive_rate": 0.0488997555012225
+  },
+  {
+    "split": "test",
+    "n_samples": 1022,
+    "n_patients": 1022,
+    "n_positive": 50,
+    "positive_rate": 0.04892367906066536
+  }
+]
