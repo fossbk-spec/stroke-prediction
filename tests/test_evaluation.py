@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import numpy as np
+import pandas as pd
 import pytest
 from sklearn.metrics import roc_auc_score
 
@@ -61,8 +62,44 @@ class TestMetrics:
 
     def test_metrics_include_mandatory_clinical_set(self, imbalanced_labels):
         m = evaluation.compute_metrics(imbalanced_labels, np.random.default_rng(0).random(100))
-        for key in ("recall", "pr_auc", "f2", "roc_auc", "specificity", "n_false_negative"):
+        for key in ("recall", "pr_auc", "f2", "roc_auc", "specificity", "brier",
+                    "n_false_negative"):
             assert key in m
+
+
+def test_bootstrap_ci_and_whole_patient_sampling(monkeypatch):
+    y = np.array([0, 1, 0, 1, 0, 1])
+    proba = np.array([0.11, 0.12, 0.2, 0.8, 0.3, 0.9])
+    groups = np.array([1, 1, 2, 3, 4, 5])
+    original = evaluation.compute_metrics
+    seen = []
+
+    def spy(sample_y, sample_proba, **kwargs):
+        sample_proba = np.asarray(sample_proba)
+        seen.append(sample_proba)
+        assert np.count_nonzero(sample_proba == 0.11) == np.count_nonzero(sample_proba == 0.12)
+        return original(sample_y, sample_proba, **kwargs)
+
+    monkeypatch.setattr(evaluation, "compute_metrics", spy)
+    ci = evaluation.bootstrap_metrics(y, proba, groups, threshold=0.5, n_boot=40)
+    assert len(ci) == 7
+    assert (ci["lower"] <= ci["upper"]).all()
+    assert (ci["n_valid"] + ci["n_skipped"] == 40).all()
+    assert len(seen) == int(ci["n_valid"].iloc[0]) + 1
+
+
+def test_calibration_counts_and_subgroups():
+    y = np.array([0, 1, 0, 0, 0, 1, 0, 0, 1])
+    proba = np.linspace(0.1, 0.9, len(y))
+    X = pd.DataFrame({"gender": ["Male", "Female", "Other"] * 3,
+                      "age": [20, 50, 70] * 3})
+    assert evaluation.calibration_table(y, proba, n_bins=4)["count"].sum() == len(y)
+    assert evaluation.calibration_table(y, proba, n_bins=4, strategy="uniform")["count"].sum() == len(y)
+    subgroups = evaluation.subgroup_metrics(X, y, proba, threshold=0.5)
+    assert set(subgroups.loc[subgroups.subgroup == "gender", "level"]) == {"Male", "Female"}
+    assert set(subgroups.loc[subgroups.subgroup == "age_band", "level"]) == {"<45", "45-64", ">=65"}
+    assert pd.isna(subgroups.loc[(subgroups.subgroup == "gender") &
+                                   (subgroups.level == "Male"), "roc_auc"]).all()
 
 
 class TestThresholdTuning:
@@ -135,6 +172,23 @@ class TestModelEvaluation:
         )
         assert len(cv) == 3
         assert "recall" in cv.columns
+        assert evaluation.summarize_cv(cv).notna().all()
+
+    def test_grouped_cv_repeats(self, synthetic_df):
+        from src import config
+        from src.data_loader import split_features_target
+        from src.models import get_model
+        from src.preprocessing import make_full_pipeline
+
+        X, y = split_features_target(synthetic_df)
+        pipeline = make_full_pipeline(get_model("logistic_regression"), use_smote=False)
+        cv = evaluation.cross_validate_grouped(
+            pipeline, X, y, synthetic_df[config.ID_COLUMN], n_splits=2,
+            n_repeats=2, tune_threshold=False,
+        )
+        assert len(cv) == 4
+        assert cv["repeat"].tolist() == [1, 1, 2, 2]
+        assert cv.index.is_unique
         assert evaluation.summarize_cv(cv).notna().all()
 
     def test_grouped_cv_with_decision_function_returns_all_folds(self, synthetic_df):

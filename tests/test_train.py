@@ -38,6 +38,10 @@ def test_cli_min_recall_reaches_cv_policy(monkeypatch, tmp_path):
                 "--no-smote",
                 "--min-recall",
                 "0.8",
+                "--n-boot",
+                "20",
+                "--cv-repeats",
+                "1",
                 "--output",
                 str(tmp_path),
             ]
@@ -47,6 +51,12 @@ def test_cli_min_recall_reaches_cv_policy(monkeypatch, tmp_path):
     assert cv_policies == [0.8]
     assert cv_threshold_calls == [0.8, 0.8]
     assert (tmp_path / "cv_naive_bayes.csv").exists()
+    for relative in (
+        "test_bootstrap_ci_naive_bayes.csv", "test_bootstrap_ci.csv",
+        "calibration_naive_bayes.csv", "figures/calibration_naive_bayes.png",
+        "subgroup_naive_bayes.csv",
+    ):
+        assert (tmp_path / relative).exists()
 
 
 def test_stacking_groups_reach_training_and_nested_cv(monkeypatch):
