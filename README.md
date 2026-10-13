@@ -88,6 +88,27 @@ Accuracy alone is never used — see Parts I/III of
 [`docs/DETAILED_EXAM_REPORT.md`](docs/DETAILED_EXAM_REPORT.md) for the
 asymmetric FN vs. FP risk analysis in medical diagnosis.
 
+## Leakage inflation experiment
+
+```bash
+python -m src.leakage_experiment --models logistic_regression random_forest gradient_boosting --n-repeats 5 --n-splits 5 --output reports/leakage
+```
+
+Use `--data path/to/other.csv` for another CSV with the same Kaggle feature and
+target columns; a missing `id` column is filled from the row index. The command
+writes fold results, repeat-level summaries with 95% confidence intervals and
+paired differences against P0, and a ROC-AUC/recall figure under the output
+directory. Leaky scores are methodological comparisons, not estimates of
+performance on new patients.
+
+| Protocol | Training and validation procedure |
+|---|---|
+| P0 `correct` | Patient-grouped folds; preprocessing and SMOTENC fitted on each training fold; real validation rows. |
+| P1 `smote_before_split` | Preprocess and SMOTENC the entire dataset, then ordinary stratified folds; validation includes synthetic rows. |
+| P2 `preprocess_before_split` | Fit imputation and encoding on all rows, then apply SMOTENC only to each training fold; real validation rows. |
+| P3 `balanced_test` | Train as P0; randomly down-sample each validation fold to equal class counts before scoring. |
+| P4 `no_resampling_baseline` | Train and validate as P0 without SMOTENC. |
+
 ## Reference results (Test set, threshold tuned on Validation via F2)
 | Model | Recall | PR-AUC | F2 | Precision | ROC-AUC |
 |---|---|---|---|---|---|
