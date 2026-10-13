@@ -33,11 +33,13 @@
       "test_tp_lr": 0,
       "test_fn_lr": 50,
       "test_tp_gb": 1,
-      "test_fn_gb": 49
+      "test_fn_gb": 49,
+      "stroke_cases": 249,
+      "positive_rate_percent": 4.9
     },
     "validation_strategy": "80/20 train-test split plus stratified 5-fold cross-validation applied post-resampling",
     "limitations": "All models showed poor recall: LR detected 0 of 50 test stroke cases despite 95.11% accuracy; accuracy-driven evaluation on imbalanced data; sample-level split",
-    "ground_truth_quote": "\"Logistic Regression yielded the highest mean accuracy (0.9511) and a strong ROC-AUC of 0.8362\" (Results, Models performance para 1); Table 2: LR TN 972, FP 0, FN 50, TP 0; Gradient boosting FN 49, TP 1; \"all models demonstrated poor recall, reflecting challenges in identifying rare stroke cases\" (Abstract)",
+    "ground_truth_quote": "\"Logistic Regression yielded the highest mean accuracy (0.9511) and a strong ROC-AUC of 0.8362\" (Results, Models performance para 1); Table 2: LR TN 972, FP 0, FN 50, TP 0; Gradient boosting FN 49, TP 1; \"all models demonstrated poor recall, reflecting challenges in identifying rare stroke cases\" (Abstract); \"only 249 of 5,110 observations\" and \"stroke cases accounted for only 4.9% of the total\" (Results, PDF p.11)",
     "source_location": "Publisher PDF (SSoT): p.1 Abstract; p.9 Data preprocessing; p.11 Models performance; p.13 Table 2",
     "venue_rank": null
   },
@@ -70,11 +72,16 @@
     "comparator": "Single ML classifiers (RF, ETC, AdaBoost, SGD, KNN, DT)",
     "quantitative_metrics": {
       "stacking_accuracy_percent": 100,
-      "auc_rf_etc_smote": 0.98
+      "auc_rf_etc_smote": 0.98,
+      "stacking_smote_recall_percent": 100,
+      "stacking_adasyn_accuracy_percent": 96.4,
+      "stacking_adasyn_recall_percent": 97,
+      "dataset_stroke": 249,
+      "dataset_normal": 4861
     },
-    "validation_strategy": "Oversampled (balanced) dataset evaluated with 10-fold cross-validation",
-    "limitations": "Reported 100% accuracy on a 5% prevalence outcome is implausible and consistent with leakage from oversampling before validation; no independent test set",
-    "ground_truth_quote": "\"the total number of participants is 3,254\" (Abstract); \"The stacking method achieved a remarkable accuracy of 100% as well as exceptional F1-score, precision, and recall score\" (Results); \"As with using SMOTE for balancing the dataset, RF, ETC achieved a 0.98 AUC score\" (ROC curves para 3)",
+    "validation_strategy": "Oversampled (SMOTE/ADASYN) data divided 80/20 into training and testing sets; K-fold evaluation (Table 6)",
+    "limitations": "Oversampling is applied before the train/test split, so synthetic copies of test cases are in training (explicit data leakage); 100% accuracy and recall with SMOTE are artefacts",
+    "ground_truth_quote": "\"the total number of participants is 3,254\" (Abstract); \"The stacking method achieved a remarkable accuracy of 100% as well as exceptional F1-score, precision, and recall score\" (Results); \"As with using SMOTE for balancing the dataset, RF, ETC achieved a 0.98 AUC score\" (ROC curves para 3); \"Next, the oversampled data is divided into training and testing sets\" and \"A total of 80% of the data is employed for training the classifiers and 20% for testing\" (Methods); Table 6: SMOTE stacking accuracy 100, recall 100; ADASYN stacking accuracy 96.4, recall 97; \"4,861 individuals classified as normal (healthy) and 249 individuals with a stroke\" (Dataset)",
     "source_location": "Full text PMC10703010: Abstract; ensemble evaluation para 2; ROC curves para 3; Table 6",
     "venue_rank": null
   },
@@ -220,12 +227,14 @@
       "c_statistic_xgboost": 0.89,
       "f1_xgboost": 0.8,
       "c_statistic_ebm": 0.87,
-      "c_statistic_lr": 0.8
+      "c_statistic_lr": 0.8,
+      "f1_lr": 0.73,
+      "c_statistic_tan": 0.83
     },
-    "validation_strategy": "Multiple imputation by chained equations; models compared on C-statistic and F1",
-    "limitations": "Single hospital; explainability compared qualitatively (abstract-level details)",
-    "ground_truth_quote": "\"Out of 275,247 high-risk patients, 9659 (3.5%) experienced a stroke. XGBoost demonstrated the highest performance with a C-statistic of 0.89 and an F1-score of 0.80 followed by EBM and TAN ... LR and BN had similar C-statistics of 0.80\" (Abstract)",
-    "source_location": "Full text PMC10413234: Abstract (Results)",
+    "validation_strategy": "Patient-level 80:20 split by hospital number (each patient in only one set); MICE imputation; C-statistic and F1 on the test set",
+    "limitations": "Single hospital; recall/sensitivity not reported in the main text (PR curves only in appendix)",
+    "ground_truth_quote": "\"Out of 275,247 high-risk patients, 9659 (3.5%) experienced a stroke. XGBoost demonstrated the highest performance with a C-statistic of 0.89 and an F1-score of 0.80 followed by EBM and TAN ... LR and BN had similar C-statistics of 0.80\" (Abstract); \"We randomly separated the data by hospital numbers into development and test sets with a ratio of 80:20; each patient appeared in only 1 data set\" (Methods); Table 2: XGBoost 0.89 / F1 0.80, EBM 0.87, TAN 0.83, LR 0.80 / F1 0.73",
+    "source_location": "Full text PMC10413234: Abstract; Methods (data split); Table 2",
     "venue_rank": null
   },
   {
