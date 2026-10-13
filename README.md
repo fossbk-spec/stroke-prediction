@@ -54,7 +54,7 @@ stroke-prediction/
 ├── tests/                    # 103 tests, including the anti-leakage suite
 ├── docs/
 │   ├── DETAILED_EXAM_REPORT.md   # detailed exam-solution report (source brief)
-│   └── literature/                # 18 paper summaries, dataset spec, evisyn/ (PRISMA search, evidence matrix, references.bib)
+│   └── literature/                # 19 paper summaries, dataset spec, evisyn/ (PRISMA search, evidence matrix, references.bib)
 └── .github/workflows/ci_cd_pipeline.yml
 ```
 

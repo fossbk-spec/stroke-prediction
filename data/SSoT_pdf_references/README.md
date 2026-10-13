@@ -10,7 +10,7 @@ This directory stores the original PDF files of every paper cited in
 Example: `2022_Dritsas_StrokeRiskPredictionML.pdf`
 
 ## Files to add (not committed here due to publisher copyright)
-The 18 core papers of the literature matrix (`docs/literature/evisyn/evidence_matrix.json`; citekeys in `references.bib`).
+The 19 core papers of the literature matrix (`docs/literature/evisyn/evidence_matrix.json`; citekeys in `references.bib`).
 
 | File to download | Journal | DOI |
 |---|---|---|
@@ -32,6 +32,7 @@ The 18 core papers of the literature matrix (`docs/literature/evisyn/evidence_ma
 | `2025_Soladoye_MLTechniquesStrokeSystematicReview.pdf` | International Journal of Medical Informatics | https://doi.org/10.1016/j.ijmedinf.2025.106041 |
 | `2025_HeseltineCarpenter_MLStrokeRoutineHospitalDataSR.pdf` | International Journal of Medical Informatics | https://doi.org/10.1016/j.ijmedinf.2025.105811 |
 | `2021_Velagapudi_StrokeDatasetOriginDiscrepancies.pdf` | Journal of Stroke and Cerebrovascular Diseases | https://doi.org/10.1016/j.jstrokecerebrovasdis.2021.105832 |
+| `2024_BruunJensen_DAREISCStrokeRiskDenmark.pdf` | BMJ Open | https://doi.org/10.1136/bmjopen-2023-076640 |
 
 **Note**: Do not commit copyrighted PDFs to a public repository. Each team
 member downloads the PDFs themselves and places them in this directory

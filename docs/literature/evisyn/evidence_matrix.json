@@ -341,5 +341,28 @@
     "ground_truth_quote": "\"Of the 27 studies included, 7 (25.9%) used patient data from California\" (Abstract); \"a strong disconnect exists between the datasets and patient cohorts used in training machine learning algorithms ... and the stroke distribution\" (Abstract, Conclusions)",
     "source_location": "Abstract only (no open full text)",
     "venue_rank": null
+  },
+  {
+    "citekey": "BruunJensen2024DAREISC",
+    "study_design": "Retrospective nationwide registry cohort (Denmark), temporal validation",
+    "sample_size": 4580547,
+    "patient_characteristics": "All Danish adults aged 18 or older, 2010-2017 (35 519 348 person-years); validation year 2017 with 4 580 547 individuals; AF subset",
+    "intervention_technology": "Gradient boosting decision trees (LightGBM) with 375 covariates; SHAP",
+    "comparator": "GARFIELD-AF risk model, CHA2DS2-VASc score",
+    "quantitative_metrics": {
+      "auc_general_population": 0.874,
+      "auc_af": 0.779,
+      "auc_garfield_af": 0.704,
+      "auc_cha2ds2vasc": 0.681,
+      "average_precision_af": 0.119,
+      "average_precision_garfield_af": 0.041,
+      "average_precision_cha2ds2vasc": 0.034,
+      "covariates": 375
+    },
+    "validation_strategy": "Trained on 2010-2016 cohorts with fivefold CV, hyperparameters tuned on 2016, external (temporal) validation on the 2017 cohort; an individual could be in multiple yearly cohorts",
+    "limitations": "Temporal but not person-disjoint validation (same individuals can appear in training and validation years); 375 registry covariates may not be available outside Denmark",
+    "ground_truth_quote": "\"DARE-ISC had an AUC (95% CI) of 0.874 (0.871 to 0.876) in the general population. In AF patients, DARE-ISC was superior to the GARFIELD-AF risk model and CHA2DS2-VASc score with AUC of 0.779 ... 0.704 ... and 0.681\" and \"average precision scores of 0.119, 0.041 and 0.034\" (Abstract); \"In total, 4 580 547 individuals were included in the cohort for the validation year (2017)\" (Results); \"Thus, an individual could be in multiple cohorts if they fulfilled these inclusion criteria\" (Methods); \"trained ... on the 2010-2016 cohorts using fivefold cross-validation with external validation on the 2017 cohort\" (Methods)",
+    "source_location": "Full text PMC11103190: Abstract; Methods (study population, model training); Results para 1; Strengths and limitations",
+    "venue_rank": null
   }
 ]
