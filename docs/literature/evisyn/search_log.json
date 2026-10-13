@@ -1,0 +1,72 @@
+{
+  "date": "2026-10-13",
+  "searches": [
+    {
+      "database": "Europe PMC",
+      "query": "(TITLE_ABS:\"stroke\") AND (TITLE_ABS:\"machine learning\" OR TITLE_ABS:\"random forest\" OR TITLE_ABS:\"gradient boosting\" OR TITLE_ABS:\"XGBoost\" OR TITLE_ABS:\"stacking\" OR TITLE_ABS:\"ensemble\") AND (TITLE_ABS:\"prediction\" OR TITLE_ABS:\"risk\") AND (TITLE_ABS:\"imbalance\" OR TITLE_ABS:\"SMOTE\" OR TITLE_ABS:\"electronic health records\" OR TITLE_ABS:\"risk factors\" OR TITLE_ABS:\"Kaggle\") AND PUB_YEAR:[2020 TO 2026] AND (SRC:MED OR SRC:PMC) AND PUB_TYPE:\"journal article\"",
+      "results": 499
+    },
+    {
+      "database": "Semantic Scholar",
+      "query": "stroke risk prediction machine learning tabular clinical data (year 2020-2026)",
+      "results": 0,
+      "run_date": "2026-10-13 (rerun)"
+    },
+    {
+      "database": "Semantic Scholar",
+      "query": "stroke prediction ensemble stacking SMOTE class imbalance (year 2020-2026)",
+      "results": 100,
+      "run_date": "2026-10-13 (rerun)"
+    },
+    {
+      "database": "Semantic Scholar",
+      "query": "stroke prediction explainable machine learning SHAP risk factors (year 2020-2026)",
+      "results": 100,
+      "run_date": "2026-10-13 (rerun after HTTP 429)"
+    },
+    {
+      "database": "Semantic Scholar",
+      "query": "stroke prediction electronic health records gradient boosting cohort (year 2020-2026)",
+      "results": 97,
+      "run_date": "2026-10-13 (rerun)"
+    },
+    {
+      "database": "OpenAlex",
+      "query": "stroke risk prediction machine learning | from_publication_date:2020-01-01,to_publication_date:2026-12-31,has_doi:true,type:article",
+      "results": 100
+    },
+    {
+      "database": "OpenAlex",
+      "query": "stroke prediction ensemble SMOTE imbalanced | from_publication_date:2020-01-01,to_publication_date:2026-12-31,has_doi:true,type:article",
+      "results": 100
+    },
+    {
+      "database": "OpenAlex",
+      "query": "stroke prediction explainable machine learning SHAP | from_publication_date:2020-01-01,to_publication_date:2026-12-31,has_doi:true,type:article",
+      "results": 100
+    }
+  ],
+  "identified": 1099,
+  "duplicates_removed": 118,
+  "after_dedup": 981,
+  "other_sources": 3,
+  "excluded": 907,
+  "eligible": 74,
+  "core_matrix": 19,
+  "prisma_counts": {
+    "europepmc": 499,
+    "openalex": 300,
+    "s2": 297,
+    "other": 3,
+    "total_identified": 1099,
+    "duplicates_removed": 118,
+    "unique_records": 981,
+    "excluded_title_abstract": 907,
+    "fulltext_assessed": 74,
+    "ex_wrong_design": 0,
+    "ex_no_metrics": 0,
+    "ex_no_data": 0,
+    "final_included": 19
+  },
+  "notes": "PubMed (NCBI E-utilities) blocked by NCBI WAF from this environment; Europe PMC covers MEDLINE. Semantic Scholar rerun 2026-10-13 after HTTP 429: 3 of 4 queries returned results (297 records); 'tabular clinical data' query returned 0 for 2020-2026."
+}

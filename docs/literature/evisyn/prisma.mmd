@@ -1,0 +1,30 @@
+flowchart TD
+    subgraph IDENTIFICATION [1. Identification - Xác định nguồn]
+        A1["PubMed: 0"]
+        A2["Europe PMC: 499"]
+        A3["OpenAlex: 300"]
+        A4["Semantic Scholar: 297"]
+        A5["Scopus / WoS: 3"]
+        TOTAL_ID["Tổng số bản ghi thu thập được<br>N = 1099"]
+        A1 & A2 & A3 & A4 & A5 --> TOTAL_ID
+    end
+
+    subgraph SCREENING [2. Screening - Sàng lọc]
+        DUP["Bản ghi trùng lặp bị loại<br>N = 118"]
+        UNIQUE["Bản ghi độc nhất đưa vào sàng lọc Title/Abstract<br>N = 981"]
+        EXCLUDED["Bị loại qua Title/Abstract (AI + HITL)<br>N = 907"]
+        RETRIEVED["Bài báo thẩm định toàn văn (Full-text)<br>N = 74"]
+
+        TOTAL_ID --> DUP
+        TOTAL_ID --> UNIQUE
+        UNIQUE --> EXCLUDED
+        UNIQUE --> RETRIEVED
+    end
+
+    subgraph INCLUDED [3. Included - Nghiên cứu đưa vào Tổng quan]
+        FT_EXCLUDED["Toàn văn bị loại kèm lý do:<br>- Sai thiết kế nghiên cứu: 0<br>- Không có số liệu định lượng: 0<br>- Không trích xuất được data: 0"]
+        FINAL_INC["Nghiên cứu chính thức đưa vào Tổng quan<br>N = 19"]
+
+        RETRIEVED --> FT_EXCLUDED
+        RETRIEVED --> FINAL_INC
+    end

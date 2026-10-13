@@ -1,0 +1,368 @@
+[
+  {
+    "citekey": "Dritsas2022Stacking",
+    "study_design": "Retrospective model development on public dataset",
+    "sample_size": 3254,
+    "patient_characteristics": "Kaggle Stroke Prediction Dataset, adults over 18 years; stroke prevalence 5.53%",
+    "intervention_technology": "Stacking (Naive Bayes, Random Forest, J48, RepTree; meta-learner Logistic Regression), WEKA",
+    "comparator": "Single classifiers (NB, RF, 3-NN, J48, RepTree, LR, SGD, MLP)",
+    "quantitative_metrics": {
+      "auc": 0.989,
+      "recall": 0.974,
+      "precision": 0.974,
+      "f_measure": 0.974,
+      "accuracy": 0.98,
+      "balanced_instances_after_smote": 6148
+    },
+    "validation_strategy": "SMOTE applied to the whole dataset, then 10-fold cross-validation on the balanced dataset of 6148 instances (sample-level, no held-out test set)",
+    "limitations": "Oversampling before cross-validation lets synthetic neighbours of test-fold cases enter training (data leakage), inflating AUC/recall; single public dataset without external validation",
+    "ground_truth_quote": "\"For our experiments, 10-cross validation was applied to assess the models' efficiency in the balanced dataset of 6148 instances\" (Section 4.1 Experiments Setup); \"Stacking classification outperforms the other methods, with an AUC of 98.9%, F-measure, precision and recall of 97.4% and an accuracy of 98%\" (Abstract; Section 5 Conclusions, para 3); \"The number of participants was 3254\" (Section 3.1 Dataset Description, para 1)",
+    "source_location": "Publisher PDF (SSoT): p.1 Abstract; p.3 Sec 3.1; p.8 Sec 4.1; p.10 Sec 5",
+    "venue_rank": null
+  },
+  {
+    "citekey": "Akinwumi2025Evaluating",
+    "study_design": "Retrospective model development on public dataset",
+    "sample_size": 5110,
+    "patient_characteristics": "Kaggle Stroke Prediction Dataset (Soriano, 2021), 11 features; 58.6% female",
+    "intervention_technology": "Random Forest, Gradient Boosting, SVM, KNN after class rebalancing (resampling preferred over SMOTE)",
+    "comparator": "Logistic Regression",
+    "quantitative_metrics": {
+      "accuracy_lr": 0.9511,
+      "auroc_lr": 0.8362,
+      "test_tp_lr": 0,
+      "test_fn_lr": 50,
+      "test_tp_gb": 1,
+      "test_fn_gb": 49,
+      "stroke_cases": 249,
+      "positive_rate_percent": 4.9
+    },
+    "validation_strategy": "80/20 train-test split plus stratified 5-fold cross-validation applied post-resampling",
+    "limitations": "All models showed poor recall: LR detected 0 of 50 test stroke cases despite 95.11% accuracy; accuracy-driven evaluation on imbalanced data; sample-level split",
+    "ground_truth_quote": "\"Logistic Regression yielded the highest mean accuracy (0.9511) and a strong ROC-AUC of 0.8362\" (Results, Models performance para 1); Table 2: LR TN 972, FP 0, FN 50, TP 0; Gradient boosting FN 49, TP 1; \"all models demonstrated poor recall, reflecting challenges in identifying rare stroke cases\" (Abstract); \"only 249 of 5,110 observations\" and \"stroke cases accounted for only 4.9% of the total\" (Results, PDF p.11)",
+    "source_location": "Publisher PDF (SSoT): p.1 Abstract; p.9 Data preprocessing; p.11 Models performance; p.13 Table 2",
+    "venue_rank": null
+  },
+  {
+    "citekey": "Kokkotis2022Explainable",
+    "study_design": "Retrospective model development on public dataset",
+    "sample_size": 43400,
+    "patient_characteristics": "Kaggle Cerebral Stroke Prediction-Imbalanced Dataset, 10 risk factors",
+    "intervention_technology": "RF, XGBoost, KNN, SVM, MLP with random under-sampling; SHAP interpretation",
+    "comparator": "Logistic Regression",
+    "quantitative_metrics": {
+      "auc_lr_percent": 83.3,
+      "sensitivity_lr_percent": 78.12,
+      "sensitivity_mlp_percent": 81.4,
+      "fn_rate_mlp_percent": 18.6,
+      "auc_xgboost_percent": 82.5
+    },
+    "validation_strategy": "Nested stratified 10-fold cross-validation; random under-sampling in each run; hyperparameters tuned on training folds only",
+    "limitations": "LR matched or beat complex models on AUC; under-sampling discards majority data; no external validation; accuracy around 70% after rebalancing",
+    "ground_truth_quote": "\"The dataset contains a total of 43,400 subjects and 10 risk factors\" (Data Description); \"a nested stratified 10-fold cross-validation process was adopted\" (Section 2.6 para 1); Table 3: LR AUC 83.30, sensitivity 78.12; MLP sensitivity 81.40, FN rate 18.60",
+    "source_location": "Full text PMC9600473: Data Description; Sec 2.6 para 1; Sec 4 para 2; Table 3",
+    "venue_rank": null
+  },
+  {
+    "citekey": "Rehman2023RDET",
+    "study_design": "Retrospective model development on public dataset",
+    "sample_size": 3254,
+    "patient_characteristics": "Kaggle stroke dataset (3,254 participants)",
+    "intervention_technology": "RDET stacking and soft-voting ensembles (RF, DT, ExtraTrees) with SMOTE / ADASYN",
+    "comparator": "Single ML classifiers (RF, ETC, AdaBoost, SGD, KNN, DT)",
+    "quantitative_metrics": {
+      "stacking_accuracy_percent": 100,
+      "auc_rf_etc_smote": 0.98,
+      "stacking_smote_recall_percent": 100,
+      "stacking_adasyn_accuracy_percent": 96.4,
+      "stacking_adasyn_recall_percent": 97,
+      "dataset_stroke": 249,
+      "dataset_normal": 4861
+    },
+    "validation_strategy": "Oversampled (SMOTE/ADASYN) data divided 80/20 into training and testing sets; K-fold evaluation (Table 6)",
+    "limitations": "Oversampling is applied before the train/test split, so synthetic copies of test cases are in training (explicit data leakage); 100% accuracy and recall with SMOTE are artefacts",
+    "ground_truth_quote": "\"the total number of participants is 3,254\" (Abstract); \"The stacking method achieved a remarkable accuracy of 100% as well as exceptional F1-score, precision, and recall score\" (Results); \"As with using SMOTE for balancing the dataset, RF, ETC achieved a 0.98 AUC score\" (ROC curves para 3); \"Next, the oversampled data is divided into training and testing sets\" and \"A total of 80% of the data is employed for training the classifiers and 20% for testing\" (Methods); Table 6: SMOTE stacking accuracy 100, recall 100; ADASYN stacking accuracy 96.4, recall 97; \"4,861 individuals classified as normal (healthy) and 249 individuals with a stroke\" (Dataset)",
+    "source_location": "Full text PMC10703010: Abstract; ensemble evaluation para 2; ROC curves para 3; Table 6",
+    "venue_rank": null
+  },
+  {
+    "citekey": "Melnykova2025Imbalanced",
+    "study_design": "Retrospective model development on public dataset",
+    "sample_size": 4981,
+    "patient_characteristics": "Public stroke dataset, 4,981 rows and 11 columns",
+    "intervention_technology": "Random Forest (best), other classifiers with SMOTE; grid search",
+    "comparator": "Same classifiers without SMOTE",
+    "quantitative_metrics": {
+      "rf_precision_recall_f1_percent": 90,
+      "rf_accuracy_percent": 90,
+      "rf_unbalanced_accuracy_percent": 96
+    },
+    "validation_strategy": "80-20 train-test split",
+    "limitations": "Shows accuracy of 96% is misleading on imbalanced data; ordering of SMOTE relative to the split not explicit; no external validation",
+    "ground_truth_quote": "\"achieving precision, recall, and F1-score levels of 90%, along with an accuracy of 90%\" (Abstract); \"This approach demonstrated the model's high accuracy of 96%, underscoring the impracticality of using accuracy as the sole metric\" (Abstract); \"our dataset has 4981 rows and 11 columns\" (Methods)",
+    "source_location": "Full text PMC12484691: Abstract; Methods (grid search); Results para 34; Table 4",
+    "venue_rank": null
+  },
+  {
+    "citekey": "Chun2021CKB",
+    "study_design": "Prospective cohort (China Kadoorie Biobank)",
+    "sample_size": null,
+    "patient_characteristics": "About 0.5 million Chinese adults; training set 174 498 men (16 649 strokes) and 253 766 women (20 100 strokes)",
+    "intervention_technology": "Gradient boosted trees, ensemble of GBT and Cox selected by a decision tree",
+    "comparator": "Cox proportional hazards model",
+    "quantitative_metrics": {
+      "auroc_gbt_men": 0.833,
+      "auroc_gbt_women": 0.836,
+      "sensitivity_gbt_men_percent": 80,
+      "sensitivity_gbt_women_percent": 74
+    },
+    "validation_strategy": "Random split into training (85%), validation (12.75%) and test (2.25%) sets; k-fold CV inside training; sex-specific models; calibration via Hosmer-Lemeshow",
+    "limitations": "Single-country cohort; ensemble gains were incremental; test set only 2.25% of cohort",
+    "ground_truth_quote": "\"For 9-yr stroke risk prediction, GBT provided the best discrimination (AUROC: 0.833 in men, 0.836 in women) and calibration\" (Abstract); \"The GBT-only approach yielded the highest sensitivity (80% in men, 74% in women)\" (Results, Comparison of risk screening approaches para 1); training set 85% with 174 498 men and 253 766 women (Methods, Model development and validation para 1)",
+    "source_location": "Publisher PDF (SSoT): p.1 Abstract; p.2 Methods; p.5 Results",
+    "venue_rank": null
+  },
+  {
+    "citekey": "Yang2021Hypertensive",
+    "study_design": "Retrospective EHR cohort (Shenzhen Health Information Big Data Platform)",
+    "sample_size": 57671,
+    "patient_characteristics": "Hypertensive patients; 9421 stroke onsets in 3-year follow-up; 19,953 samples after balanced sampling",
+    "intervention_technology": "XGBoost, Random Forest, SVM with multitemporal trend features",
+    "comparator": "Logistic Regression and traditional risk scales",
+    "quantitative_metrics": {
+      "auc_xgboost": 0.922,
+      "recall_xgboost": 0.8512,
+      "auc_rf": 0.8956,
+      "auc_lr": 0.8544,
+      "recall_lr": 0.7141
+    },
+    "validation_strategy": "Case-control balancing by gender/age, random 7:3 train-test split; 5-fold CV on training set",
+    "limitations": "Artificially balanced evaluation set does not reflect real prevalence; retrospective single-region data",
+    "ground_truth_quote": "\"a total of 57,671 patients were screened from 250,788 registered patients with hypertension, of whom 9421 had stroke onset\" (Abstract); Table 3: XGBoost AUC 0.9220, recall 0.8512; LR AUC 0.8544, recall 0.7141; \"the final 19,953 samples were randomly divided into a training set and test set according to a ratio of 7:3\" (Abstract)",
+    "source_location": "Publisher PDF (SSoT): p.1 Abstract; p.7 Table 3; p.9 Principal Findings",
+    "venue_rank": null
+  },
+  {
+    "citekey": "Duan2025CHERRY",
+    "study_design": "Retrospective EHR cohort (CHERRY, Yinzhou, 2015-2021)",
+    "sample_size": 92172,
+    "patient_characteristics": "Adults 18-75 years, 436 incident strokes (474/100,000 person-years)",
+    "intervention_technology": "Decision Tree, Random Forest, XGBoost, BP neural network",
+    "comparator": "Logistic Regression",
+    "quantitative_metrics": {
+      "auc_rf_validation": 0.98,
+      "auc_lr_validation": 0.779,
+      "auc_xgboost_validation": 0.958,
+      "recall_rf": 0.947
+    },
+    "validation_strategy": "Random 7:3 training/validation split; Youden-index cutoff",
+    "limitations": "RF and XGBoost were less well calibrated than LR; very high AUC/precision at 0.47% incidence suggests optimistic internal validation; no external validation",
+    "ground_truth_quote": "\"The study cohort comprised 92,172 participants with 436 incident stroke cases\" (Abstract); \"training/validation area under the curve (AUC)s of 0.777/0.779 (LR) ... 0.988/0.980 (RF)\" (Abstract); \"Calibration analysis revealed a better fit for DT, LR and BPNN compared to RF and XGBoost model\" (Abstract)",
+    "source_location": "Publisher PDF (SSoT): p.1 Abstract; p.4 Results",
+    "venue_rank": null
+  },
+  {
+    "citekey": "Vu2024Suita",
+    "study_design": "Prospective population cohort (Suita study, Japan)",
+    "sample_size": 7389,
+    "patient_characteristics": "Urban Japanese residents, 53 variables",
+    "intervention_technology": "RF, SVM, XGBoost, LightGBM, k-prototype clustering, SHAP",
+    "comparator": "Logistic Regression",
+    "quantitative_metrics": {
+      "auc_rf": 0.71,
+      "recall_rf": 0.7,
+      "auc_lr": 0.68,
+      "auc_svm": 0.73
+    },
+    "validation_strategy": "Down-sampling of non-stroke group, then random 80/20 train-test split",
+    "limitations": "Modest discrimination (AUC around 0.70) once a real cohort is used; down-sampling before the split changes test prevalence",
+    "ground_truth_quote": "\"comprising 7389 participants and 53 variables\" (Abstract); Table 3: RF AUC 0.71 ± 0.06, recall 0.70 ± 0.05; LR AUC 0.68 ± 0.06",
+    "source_location": "Full text PMC11276746: Abstract; Sec 2.7 para 5; Sec 3 para 4; Table 3",
+    "venue_rank": null
+  },
+  {
+    "citekey": "Lip2022Multimorbidity",
+    "study_design": "Prospective US cohort from medical databases (2-year)",
+    "sample_size": 3435224,
+    "patient_characteristics": "Patients with multimorbidity",
+    "intervention_technology": "Gradient boosting / neural network / logistic regression formulations with dynamic risk factors",
+    "comparator": "CHADS2, CHA2DS2-VASc, clinical multimorbid index",
+    "quantitative_metrics": {
+      "c_index_ml_validation": 0.866,
+      "c_index_chads2_validation": 0.812,
+      "c_index_cha2ds2vasc_validation": 0.809
+    },
+    "validation_strategy": "Training and external validation samples; calibration and decision curve analysis",
+    "limitations": "No significant difference among ML approaches; US-only claims-type data (abstract-level extraction)",
+    "ground_truth_quote": "\"We studied a prospective U.S. cohort of 3,435,224 patients\" (Abstract); \"validation for logistic regression: c index 0.866\" vs \"CHADS2: c index 0.812 ... CHA2DS2-VASc: c index 0.809\" (Abstract); \"Decision curve analysis demonstrated that clinical utility for the ML-based formulation was better\" (Abstract)",
+    "source_location": "Abstract only (no open full text)",
+    "venue_rank": null
+  },
+  {
+    "citekey": "Orfanoudaki2020NonLinear",
+    "study_design": "Cohort derivation (Framingham Offspring) and external validation (Boston Medical Center)",
+    "sample_size": 4385,
+    "patient_characteristics": "Stroke-free adults over 40; 18,793 visits; validation cohort 17,527 multi-ethnic patients",
+    "intervention_technology": "Optimal Classification Trees (non-linear stroke risk score)",
+    "comparator": "Revised Framingham Stroke Risk Score",
+    "quantitative_metrics": {
+      "c_statistic_train_percent": 87.43,
+      "c_statistic_validation_percent": 75.29,
+      "c_statistic_rfsrs_validation_percent": 65.93
+    },
+    "validation_strategy": "External validation in a separate multi-ethnic cohort",
+    "limitations": "Several visits per participant in derivation data; interpretable tree but drop from 87.43% to 75.29% on external data",
+    "ground_truth_quote": "\"inclusion of 4,385 unique participants, which translated in 18,793 distinct visits\" (Derivation cohort para 2); \"validation 75.29% (CI 0.74-0.76) vs 65.93% (CI 0.64-0.67)\" (Abstract); \"validated in a prospective multiethnic cohort of 17,527 patients\" (Validation cohort para 1)",
+    "source_location": "Full text PMC7241753: Abstract; Derivation cohort para 1-2; Validation cohort para 1",
+    "venue_rank": null
+  },
+  {
+    "citekey": "Lolak2023Explainable",
+    "study_design": "Retrospective hospital cohort (Ramathibodi Hospital, Thailand, 2010-2020)",
+    "sample_size": 275247,
+    "patient_characteristics": "High-risk patients, 9659 strokes (3.5%)",
+    "intervention_technology": "XGBoost, explainable boosting machine, Bayesian network, TAN",
+    "comparator": "Logistic Regression, Cox proportional hazards",
+    "quantitative_metrics": {
+      "c_statistic_xgboost": 0.89,
+      "f1_xgboost": 0.8,
+      "c_statistic_ebm": 0.87,
+      "c_statistic_lr": 0.8,
+      "f1_lr": 0.73,
+      "c_statistic_tan": 0.83
+    },
+    "validation_strategy": "Patient-level 80:20 split by hospital number (each patient in only one set); MICE imputation; C-statistic and F1 on the test set",
+    "limitations": "Single hospital; recall/sensitivity not reported in the main text (PR curves only in appendix)",
+    "ground_truth_quote": "\"Out of 275,247 high-risk patients, 9659 (3.5%) experienced a stroke. XGBoost demonstrated the highest performance with a C-statistic of 0.89 and an F1-score of 0.80 followed by EBM and TAN ... LR and BN had similar C-statistics of 0.80\" (Abstract); \"We randomly separated the data by hospital numbers into development and test sets with a ratio of 80:20; each patient appeared in only 1 data set\" (Methods); Table 2: XGBoost 0.89 / F1 0.80, EBM 0.87, TAN 0.83, LR 0.80 / F1 0.73",
+    "source_location": "Full text PMC10413234: Abstract; Methods (data split); Table 2",
+    "venue_rank": null
+  },
+  {
+    "citekey": "Hong2023Race",
+    "study_design": "Retrospective pooled cohort (Framingham Offspring, ARIC, MESA, REGARDS)",
+    "sample_size": 62482,
+    "patient_characteristics": "Black and White adults aged 45 or older, free of stroke/TIA; 29% Black",
+    "intervention_technology": "Two newly developed machine learning algorithms",
+    "comparator": "Framingham stroke model, REGARDS self-report model, pooled cohort equations",
+    "quantitative_metrics": {
+      "c_index_framingham": 0.72,
+      "c_index_regards": 0.73,
+      "c_index_pce": 0.72
+    },
+    "validation_strategy": "10-year risk; discrimination and calibration by race, sex and age subgroups",
+    "limitations": "ML did not significantly improve discrimination; all models discriminated worse in Black individuals (abstract-level extraction)",
+    "ground_truth_quote": "\"The combined study sample included 62 482 participants\" (Abstract); \"existing stroke-specific risk prediction models and novel machine learning techniques did not significantly improve discriminative accuracy for new-onset stroke compared with the pooled cohort equations\" (Abstract, Conclusions); \"All algorithms exhibited worse discrimination in Black individuals than in White individuals\" (Abstract)",
+    "source_location": "Abstract only (PMC10408266 full text not retrievable via Europe PMC API)",
+    "venue_rank": null
+  },
+  {
+    "citekey": "Gao2024Fair",
+    "study_design": "Retrospective EHR cohort (All of Us Research Program)",
+    "sample_size": null,
+    "patient_characteristics": "Patients with atrial fibrillation across racial groups",
+    "intervention_technology": "LightGBM on CHADS2/CHA2DS2-VASc predictors with disparity mitigation (representative tuning set, subgroup thresholds)",
+    "comparator": "CHADS2 and CHA2DS2-VASc scores",
+    "quantitative_metrics": {
+      "auroc_scores_approx": 0.7,
+      "auroc_ml_above": 0.8
+    },
+    "validation_strategy": "Hold-out test set supporting temporal validation, enriched for Black/African American patients",
+    "limitations": "AF population only; sample size and exact metrics not available at abstract level",
+    "ground_truth_quote": "\"significant improvements were achieved by modeling their predictors using machine learning models (Area Under the Receiver Operating Characteristic curve from near 0.70 to above 0.80)\" (Abstract, Results)",
+    "source_location": "Abstract only (PMC11631105 full text not retrievable via Europe PMC API)",
+    "venue_rank": null
+  },
+  {
+    "citekey": "Wallace2023VIMP",
+    "study_design": "Methodological study with literature review (50 manuscripts) and demonstration in Sleep Heart Health Study",
+    "sample_size": null,
+    "patient_characteristics": "Sleep Heart Health Study participants (5-year incident stroke demonstration)",
+    "intervention_technology": "Random forest with knockoff variable importance",
+    "comparator": "Out-of-bag (OOB) variable importance",
+    "quantitative_metrics": {
+      "manuscripts_reviewed": 50
+    },
+    "validation_strategy": "Not applicable (methods demonstration)",
+    "limitations": "OOB importance is biased toward correlated features and can mislead clinical interpretation",
+    "ground_truth_quote": "\"We first evaluate current VIMP practices through an in-depth literature review of 50 recent random forest manuscripts\" (Abstract); \"Nearly all papers in the literature review contained substantial limitations in their use of VIMPs\" (Abstract)",
+    "source_location": "Full text PMC10280951: Abstract",
+    "venue_rank": null
+  },
+  {
+    "citekey": "Soladoye2025SR",
+    "study_design": "Systematic review (PRISMA), 2013-2024",
+    "sample_size": 58,
+    "patient_characteristics": "58 ML stroke-prediction studies from five databases",
+    "intervention_technology": "Ensemble methods, deep learning",
+    "comparator": "Not applicable",
+    "quantitative_metrics": {
+      "studies_included": 58,
+      "ehr_studies": 48,
+      "ensemble_accuracy_min_percent": 90.4,
+      "ensemble_accuracy_max_percent": 97.8
+    },
+    "validation_strategy": "Descriptive synthesis (no meta-analysis due to heterogeneity)",
+    "limitations": "Searched Google Scholar/ResearchGate and open access only; reports accuracy rather than recall; African populations represented in fewer than 4 studies; high-performing studies often relied on Kaggle data of unclear provenance",
+    "ground_truth_quote": "\"Fifty-eight studies were included\" (Abstract); \"ensemble methods consistently achieved highest accuracies for stroke occurrence prediction (range: 90.4-97.8 %)\" (Abstract); \"African populations, despite highest stroke mortality rates globally, were represented in fewer than 4 studies\" (Abstract); \"most high-performing studies relied on small, region-specific datasets or open-access data of unclear provenance (particularly Kaggle datasets)\" (Discussion, PDF p.8)",
+    "source_location": "Publisher PDF (SSoT): p.1 Abstract; p.8 Discussion",
+    "venue_rank": null
+  },
+  {
+    "citekey": "HeseltineCarp2025SR",
+    "study_design": "Systematic review of ML on routine hospital data (PubMed, 2013-2024)",
+    "sample_size": 49,
+    "patient_characteristics": "49 studies: 38 general population, 11 atrial fibrillation populations",
+    "intervention_technology": "Various ML models on routine hospital data",
+    "comparator": "CHA2DS2-VASc, QRISK3",
+    "quantitative_metrics": {
+      "studies_included": 49,
+      "auc_min": 0.64,
+      "auc_max": 0.99
+    },
+    "validation_strategy": "Narrative appraisal",
+    "limitations": "Reviewed studies often had limited data quality, suspected overfitting, and lacked calibration, external validation and explainability",
+    "ground_truth_quote": "\"we identify 49 original research (38 in the general population and 11 in AF specific populations) articles\" (Abstract); \"with AUCs ranging from 0.64 to 0.99\" (Abstract); \"there was a high suspicion of overfitting and models often lacked calibration, external validation and explainability analysis\" (Abstract)",
+    "source_location": "Abstract only (no open full text)",
+    "venue_rank": null
+  },
+  {
+    "citekey": "Velagapudi2021Discrepancies",
+    "study_design": "Literature review of US ML stroke studies (PubMed)",
+    "sample_size": 27,
+    "patient_characteristics": "27 US-based ML stroke studies",
+    "intervention_technology": "Not applicable (dataset origin analysis)",
+    "comparator": "CDC state-level stroke prevalence",
+    "quantitative_metrics": {
+      "studies_included": 27,
+      "california_percent": 25.9
+    },
+    "validation_strategy": "Not applicable",
+    "limitations": "Training datasets did not match where stroke burden is highest, threatening generalizability",
+    "ground_truth_quote": "\"Of the 27 studies included, 7 (25.9%) used patient data from California\" (Abstract); \"a strong disconnect exists between the datasets and patient cohorts used in training machine learning algorithms ... and the stroke distribution\" (Abstract, Conclusions)",
+    "source_location": "Abstract only (no open full text)",
+    "venue_rank": null
+  },
+  {
+    "citekey": "BruunJensen2024DAREISC",
+    "study_design": "Retrospective nationwide registry cohort (Denmark), temporal validation",
+    "sample_size": 4580547,
+    "patient_characteristics": "All Danish adults aged 18 or older, 2010-2017 (35 519 348 person-years); validation year 2017 with 4 580 547 individuals; AF subset",
+    "intervention_technology": "Gradient boosting decision trees (LightGBM) with 375 covariates; SHAP",
+    "comparator": "GARFIELD-AF risk model, CHA2DS2-VASc score",
+    "quantitative_metrics": {
+      "auc_general_population": 0.874,
+      "auc_af": 0.779,
+      "auc_garfield_af": 0.704,
+      "auc_cha2ds2vasc": 0.681,
+      "average_precision_af": 0.119,
+      "average_precision_garfield_af": 0.041,
+      "average_precision_cha2ds2vasc": 0.034,
+      "covariates": 375
+    },
+    "validation_strategy": "Trained on 2010-2016 cohorts with fivefold CV, hyperparameters tuned on 2016, external (temporal) validation on the 2017 cohort; an individual could be in multiple yearly cohorts",
+    "limitations": "Temporal but not person-disjoint validation (same individuals can appear in training and validation years); 375 registry covariates may not be available outside Denmark",
+    "ground_truth_quote": "\"DARE-ISC had an AUC (95% CI) of 0.874 (0.871 to 0.876) in the general population. In AF patients, DARE-ISC was superior to the GARFIELD-AF risk model and CHA2DS2-VASc score with AUC of 0.779 ... 0.704 ... and 0.681\" and \"average precision scores of 0.119, 0.041 and 0.034\" (Abstract); \"In total, 4 580 547 individuals were included in the cohort for the validation year (2017)\" (Results); \"Thus, an individual could be in multiple cohorts if they fulfilled these inclusion criteria\" (Methods); \"trained ... on the 2010-2016 cohorts using fivefold cross-validation with external validation on the 2017 cohort\" (Methods)",
+    "source_location": "Full text PMC11103190: Abstract; Methods (study population, model training); Results para 1; Strengths and limitations",
+    "venue_rank": null
+  }
+]
