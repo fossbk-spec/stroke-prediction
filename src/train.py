@@ -62,16 +62,28 @@ def run_experiment(
 
     for name in model_names:
         print(f"\n=== {name} (smote={use_smote}, class_weight={class_weight}) ===")
-        estimator = models.get_model(name, class_weight=class_weight)
-        scale = name not in {"random_forest", "gradient_boosting", "decision_tree", "xgboost"}
-        pipeline = preprocessing.make_full_pipeline(
-            estimator, use_smote=use_smote, scale=scale
-        )
+        if name == "stacking":
+            # Preprocessing + SMOTE live inside each base learner, so the
+            # stacking's internal CV never sees resampled data.
+            pipeline = models.build_stacking_ensemble(
+                class_weight=class_weight,
+                base_wrapper=lambda est, scale: preprocessing.make_full_pipeline(
+                    est, use_smote=use_smote, scale=scale
+                ),
+            )
+        else:
+            estimator = models.get_model(name, class_weight=class_weight)
+            scale = name not in {"random_forest", "gradient_boosting", "decision_tree", "xgboost"}
+            pipeline = preprocessing.make_full_pipeline(
+                estimator, use_smote=use_smote, scale=scale
+            )
 
         pipeline.fit(X_train, y_train)
 
         # Verify: transforming the hold-out set does not alter the fitted state.
-        preprocessing.assert_no_fit_on_holdout(pipeline, X_test)
+        fitted_pipelines = pipeline.estimators_ if name == "stacking" else [pipeline]
+        for fitted in fitted_pipelines:
+            preprocessing.assert_no_fit_on_holdout(fitted, X_test)
 
         # Pick the threshold on VALIDATION (never on TEST).
         val_proba = evaluation.predict_proba_positive(pipeline, X_val)
@@ -91,7 +103,12 @@ def run_experiment(
             train_val = pd.concat([split.train, split.val], ignore_index=True)
             X_tv, y_tv = split_features_target(train_val)
             cv_tables[name] = evaluation.cross_validate_grouped(
-                pipeline, X_tv, y_tv, train_val[config.ID_COLUMN], beta=beta
+                pipeline,
+                X_tv,
+                y_tv,
+                train_val[config.ID_COLUMN],
+                beta=beta,
+                min_recall=min_recall,
             )
             print("  CV (train+val):")
             print("   ", evaluation.summarize_cv(cv_tables[name]).to_dict())

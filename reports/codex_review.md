@@ -1,0 +1,12 @@
+Không thấy lỗi **Critical**. Luồng chính chia theo `id`, fit pipeline trên train và chọn ngưỡng trên validation đúng; công thức Recall/F2 đúng, còn `pr_auc` thực chất là Average Precision (AP).
+
+- **High — `src/train.py:67`, `src/preprocessing.py:244`**: Stacking nhận dữ liệu đã preprocessing/SMOTE trước CV nội bộ (`src/models.py:139`, `cv=5` không grouped), khiến các fold nội bộ chia sẻ thông tin và có thể trùng bệnh nhân. **Sửa:** tạo dự đoán OOF theo nhóm từ pipeline riêng cho từng base learner, chỉ preprocessing/SMOTE trên train của mỗi fold.
+- **High — `src/evaluation.py:220`**: CV tối ưu ngưỡng trên dự đoán của chính tập vừa fit, dễ overfit và không tương ứng với quy trình chọn ngưỡng trên validation. **Sửa:** dùng validation nội bộ theo nhóm hoặc dự đoán OOF trong outer-train để chọn ngưỡng.
+- **Medium — `src/train.py:93`**: `min_recall` không được truyền vào CV; chạy `--min-recall` nhưng CV vẫn tối ưu F-beta. **Sửa:** truyền chính sách chọn ngưỡng vào CV và áp dụng trên validation nội bộ.
+- **Medium — `src/preprocessing.py:80`**: Quy đổi tỷ lệ thành `round(1/holdout_size)` làm tỷ lệ thực tế sai đáng kể, ví dụ yêu cầu 80% nhưng lấy khoảng 50%. **Sửa:** dùng thuật toán holdout theo nhóm phù hợp tỷ lệ và kiểm thử sai số cho phép.
+- **Medium — `src/preprocessing.py:244`**: SMOTE cố định `k_neighbors=5` gây lỗi nếu train của một fold có dưới 6 mẫu lớp thiểu số; split cũng không kiểm tra mỗi phần có đủ hai lớp. **Sửa:** kiểm tra số mẫu/số nhóm dương, điều chỉnh số fold và `k_neighbors` hoặc báo lỗi rõ ràng.
+- **Medium — `tests/test_data_leakage.py:85`, `:112`, `:122`**: Kiểm thử chỉ kiểm tra trạng thái sau `transform`, kích thước dự đoán và splitter; không xác minh dữ liệu thực sự đi vào `fit`/`fit_resample`, nguồn dữ liệu chọn ngưỡng hay CV nội bộ stacking. **Sửa:** thêm spy ghi nhận hàng/ID tại mỗi lần fit và kiểm thử tích hợp với bệnh nhân nhiều bản ghi.
+- **Low — `src/preprocessing.py:293`**: Bộ kiểm tra trạng thái bỏ qua dữ liệu học của KNNImputer (`_fit_X`), nên có thể bỏ lọt thay đổi imputer. **Sửa:** so sánh đầy đủ trạng thái đã fit và thêm trường hợp cố ý gây rò rỉ.
+- **Low — `src/evaluation.py:80`**: Tên `pr_auc` dễ bị hiểu là diện tích hình thang dưới đường PR, trong khi mã tính AP; kiểm thử chưa đối chiếu giá trị AP/F2 cụ thể. **Sửa:** ghi rõ AP hoặc đổi tên, thêm ví dụ có kết quả tính tay.
+
+Không sửa tệp. Chưa chạy được kiểm thử vì môi trường `python3` thiếu `pytest`.
