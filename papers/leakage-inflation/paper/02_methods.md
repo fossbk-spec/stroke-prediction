@@ -54,42 +54,54 @@ Class imbalance was handled with SMOTENC [@Chawla2002SMOTE], the SMOTE variant f
 
 ## 2.5 Evaluation protocols
 
-All protocols use the same raw data, models and hyperparameters, and repeated 5-fold cross-validation (5 repeats; repeat *r* uses random seed 42 + *r*).
+All protocols use the same raw data, models and hyperparameters, and repeated 5-fold cross-validation (5 repeats; repeat *r* uses random seed 42 + *r*). SMOTENC uses `sampling_strategy="auto"`, which balances the data it is applied to at 1:1. The protocols were finalised after an independent methods review of an earlier design. In that design, the oversampling protocol scored resampled rows and the preprocessing-leakage protocol changed the order of operations. Both confounded the contrast with P0. The design choices below follow the methodological literature cited in each row.
 
-| Protocol | Procedure | Leakage mechanism | Representative published practice |
+| Protocol | Procedure | Mechanism isolated | Comparison with P0 |
 |---|---|---|---|
-| P0 Correct | Folds split by patient (stratified group k-fold); imputation, encoding, scaling and SMOTENC fitted on the training fold only; scored on the untouched validation fold | None | — |
-| P1 SMOTE before split | Imputation and encoding fitted, and SMOTENC applied, on the entire dataset; then ordinary stratified k-fold on the resampled data | Synthetic neighbours of validation cases enter training, and validation folds contain synthetic records | Oversampling before cross-validation or before the train–test split [@Dritsas2022Stacking; @Rehman2023RDET] |
-| P2 Preprocess before split | Imputation and encoding fitted on all records; SMOTENC applied to the training fold only; real validation records | Imputer and scaler statistics include validation records | Preprocessing fitted before splitting |
-| P3 Balanced test | Trained as P0; each validation fold randomly down-sampled to 1:1 before scoring | Evaluation prevalence differs from the target population | Artificially balanced evaluation sets [@Yang2021Hypertensive; @Vu2024Suita] |
-| P4 No resampling | As P0 without SMOTENC | None (reference for the effect of resampling) | — |
+| P0 Correct | Folds split by patient (stratified group k-fold). On each training fold: impute, apply SMOTENC, then encode/scale. Scored on the untouched validation fold | None (reference) | Reference |
+| P1a SMOTE before split, as published | Imputation and SMOTENC on the entire dataset, then ordinary stratified k-fold on the resampled rows; validation folds include synthetic records | Reproduction of the published flaw [@Dritsas2022Stacking; @Rehman2023RDET; @Santos2018CVImbalanced; @Vandewiele2021Oversampling] | Unmatched (different evaluation population and prevalence): descriptive only |
+| P1b SMOTE before split, matched | Global imputation and SMOTENC as in P1a. Each P0 training fold receives its original rows plus all synthetic rows; scored on the same original validation patients as P0 | Synthetic records derived from validation patients entering training | Matched |
+| P2 Preprocessing before split | P0 order and row types. Validation records are added only to the data used to fit the imputer and the encoder/scaler; SMOTENC still sees training rows only | Leakage of preprocessing statistics only [@Rosenblatt2024Leakage] | Matched |
+| P3 Balanced evaluation set | P0 predictions scored on all validation positives plus an equal number of randomly selected negatives | Evaluation prevalence (reporting artefact) [@Saito2015PR] | Matched (validation subset) |
+| P4 No resampling | The P0 pipeline without the resampling step | Effect of 1:1 resampling itself [@Carriero2025Imbalance; @Piccininni2024Resampling; @Andersen2026TippingBalance] | Matched |
 
-Under P0, P2, P3 and P4 the folds are identical within a repeat. P3 reuses the P0 predictions, so its difference from P0 isolates the effect of the evaluation set.
+P0, P1b, P2, P3 and P4 share identical patient-grouped folds within a repeat. For P1b we record the number of synthetic training records. We also record how many of them have a validation patient as their nearest original minority neighbour in the encoded feature space; this is an approximate attribution of their SMOTENC parent, not the generator's true lineage.
+
+P3 does not reproduce the cited workflows of Yang et al. or Vu et al. literally [@Yang2021Hypertensive; @Vu2024Suita], since those studies sampled before splitting. It is a controlled experiment on evaluation prevalence. Recall is identical to P0 by construction, while precision, PR-AUC, accuracy and Brier score shift with prevalence. P4 removes the resampling step from the same pipeline, so the scaler is fitted on the original training rows. Its estimand is therefore "the same pipeline without resampling", not a single-factor change.
 
 ## 2.6 Performance measures
 
 For each validation fold we computed:
-- threshold-free measures: area under the ROC curve (ROC-AUC), average precision (PR-AUC), and Brier score as a measure of calibration [@VanCalster2019Calibration];
+- threshold-free measures: area under the ROC curve (ROC-AUC) and average precision (PR-AUC);
+- the Brier score [@VanCalster2019Calibration];
 - at a fixed decision threshold of 0.5, the default used by most of the reviewed studies: accuracy, recall, precision, specificity and F2.
 
-We also recorded the number of validation records, positive records and synthetic records.
+The Brier score is prevalence-sensitive, so we do not interpret its change under P3 as a change in calibration.
+
+We also recorded the numbers of validation records, positive records and synthetic records.
 
 ## 2.7 Statistical analysis
 
-- Fold results were first averaged within each repeat, so that the repeat is the unit of analysis.
-- For each protocol, model and measure we report the mean across repeats with a 95% *t*-interval.
-- Inflation is the paired difference from P0 for the same model and repeat, with a 95% *t*-interval.
-- We interpret the magnitude and direction of the paired differences rather than declaring significance from overlapping folds.
-
-**[TBD: decide whether to add a corrected resampled t-test.]**
+- **Single protocols.** We report the mean of the repeat means and, descriptively, the minimum and maximum repeat means. We do not report a *t*-interval, because cross-validated estimates share patients across folds and repeats and standard intervals under-cover [@Bates2023CV].
+- **Inflation.** For the matched protocols (P1b, P2, P3, P4), inflation is the difference from P0 computed at the fold level, for the same model, repeat and fold.
+- **Missing values.** A fold pair is excluded if either value is missing (for example ROC-AUC on a single-class fold). The numbers of valid folds and repeats are reported.
+- **Intervals for differences.** We report the mean difference with a 95% interval from the corrected resampled *t* method [@Nadeau2003Inference]: variance factor 1/*J* + mean(*n*<sub>test</sub>/*n*<sub>train</sub>) and *J* − 1 degrees of freedom, where *J* is the number of valid fold pairs. The method assumes exchangeable paired fold differences. We treat these intervals as a sensitivity analysis, not as population-performance intervals.
+- **P1a** receives no paired difference.
 
 ## 2.8 Software and reproducibility
 
-The analysis code is open source and covered by unit tests, including tests that synthetic records appear only in P1 validation folds and that no patient appears in both training and validation folds under P0. It runs in Python with scikit-learn and imbalanced-learn **[TBD: exact versions of the final run]**. One command reproduces all results:
+The analysis code is open source and covered by unit tests. The tests use instrumented fit functions to check that:
+- no validation record reaches any fit under P0;
+- validation records enter only the preprocessing fits under P2 and never the resampling step;
+- P1b scores the same validation patients as P0;
+- P3 reuses the P0 probabilities;
+- P4 never resamples.
+
+It runs in Python with scikit-learn and imbalanced-learn **[TBD: exact versions of the final run]**. The primary analysis is reproduced with:
 
 `python -m src.leakage_experiment --output reports/leakage`
 
-The robustness check adds `--data data/raw/cerebral-stroke-disjoint.csv`.
+The robustness analysis needs the source file and a preparation step: `python scripts/prepare_cerebral_disjoint.py`, followed by the experiment with `--data data/raw/cerebral-stroke-disjoint.csv`. A `--benchmark` option times one fold per model and protocol before the full run.
 
 ## 2.9 Use of AI tools
 
