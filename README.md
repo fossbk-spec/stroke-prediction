@@ -94,22 +94,60 @@ asymmetric FN vs. FP risk analysis in medical diagnosis.
 python -m src.leakage_experiment --models logistic_regression random_forest gradient_boosting --n-repeats 5 --n-splits 5 --output reports/leakage
 ```
 
-For the same-source disjoint sample, add `--data data/raw/cerebral-stroke-disjoint.csv`.
+The secondary, same-source disjoint sample requires the larger source CSV at
+`data/raw/dataset.csv` (it is not bundled with this worktree). Derive the
+sample and run it separately:
+
+```bash
+python scripts/prepare_cerebral_disjoint.py --source data/raw/dataset.csv --reference data/raw/healthcare-dataset-stroke-data.csv --output data/raw/cerebral-stroke-disjoint.csv
+python -m src.leakage_experiment --data data/raw/cerebral-stroke-disjoint.csv --models logistic_regression random_forest gradient_boosting --n-repeats 5 --n-splits 5 --output reports/leakage_disjoint
+```
 
 Use `--data path/to/other.csv` for another CSV with the same Kaggle feature and
-target columns; a missing `id` column is filled from the row index. The command
-writes fold results, repeat-level summaries with 95% confidence intervals and
-paired differences against P0, and a ROC-AUC/recall figure under the output
-directory. Leaky scores are methodological comparisons, not estimates of
-performance on new patients.
+target columns; a missing `id` column is filled from the row index. `--protocols`
+selects a subset. Fold results, summaries, and a ROC-AUC/recall figure are
+written under the output directory. Leaky scores are methodological
+comparisons, not estimates of performance on new patients.
 
-| Protocol | Training and validation procedure |
-|---|---|
-| P0 `correct` | Patient-grouped folds; preprocessing and SMOTENC fitted on each training fold; real validation rows. |
-| P1 `smote_before_split` | Preprocess and SMOTENC the entire dataset, then ordinary stratified folds; validation includes synthetic rows. |
-| P2 `preprocess_before_split` | Fit imputation and encoding on all rows, then apply SMOTENC only to each training fold; real validation rows. |
-| P3 `balanced_test` | Train as P0; randomly down-sample each validation fold to equal class counts before scoring. |
-| P4 `no_resampling_baseline` | Train and validate as P0 without SMOTENC. |
+| Protocol | Training and validation procedure | P0 comparison |
+|---|---|---|
+| P0 `correct` | Patient-grouped folds; prepare/impute, SMOTENC, then encode/scale on each training fold; original validation rows. | Reference |
+| P1a `smote_before_split` | Published bad before-split pattern: prepare/impute and SMOTENC globally, then stratified folds of the resampled rows, including synthetic validation rows. | Unmatched; descriptive only |
+| P1b `smote_before_split_matched` | Global preparation and SMOTENC; each grouped training fold contains its original rows plus **all** synthetic rows; scores the identical original validation rows as P0. | Matched |
+| P2 `preprocess_before_split` | P0 stage order and row types, with validation rows added to imputer and encoder/scaler fits; SMOTENC still sees training rows only. | Matched |
+| P3 `balanced_test` | Controlled 1:1 test-prevalence experiment: select all original validation positives and an equal number of negatives, then reuse P0 probabilities. Recall equals P0 by construction. This is not a literal reproduction of Yang/Vu. | Matched on grouped fold; selected validation subset |
+| P4 `no_resampling_baseline` | Remove the resampling/prepare step from the same pipeline. The scaler is fitted on original training rows; fixed-threshold metrics also reflect the changed model probabilities. | Matched |
+
+The default SMOTENC `sampling_strategy="auto"` balances each training fold
+to 1:1. P1b reports `n_synthetic_train` and
+`n_synthetic_train_val_parent`. The latter counts synthetic rows whose nearest
+original minority neighbour in an approximate encoded SMOTENC feature space
+belongs to a validation patient. It is **approximate parent attribution**, not
+the actual SMOTENC generator lineage.
+
+For each protocol/model/metric, the summary gives the mean of repeat means
+and the descriptive minimum and maximum repeat means. P0 has a zero reference
+delta; only matched interventions have inferred P0 deltas. Invalid pairs
+(including NaN metrics) are dropped at the fold
+level and valid fold/repeat counts are reported. The 95% delta interval uses
+the Nadeau–Bengio corrected resampled t method, with variance factor
+`1/n_valid_folds + mean(n_test/n_train)` and `n_valid_folds - 1` degrees of
+freedom. It assumes exchangeable paired fold differences and is a sensitivity
+analysis, not a population-performance interval. P1a has no paired delta.
+The Brier score is prevalence-sensitive here and its P3 change alone does not
+establish a calibration change. Discrimination metrics are reported alongside
+threshold metrics for P4.
+
+For the 38,290-row disjoint sample, time one fold per model and protocol
+before the full run:
+
+```bash
+python -m src.leakage_experiment --data data/raw/cerebral-stroke-disjoint.csv --models logistic_regression random_forest gradient_boosting --benchmark --n-jobs 1
+```
+
+`--benchmark` prints wall time per model fit and writes no results. The
+default `--n-jobs 1` limits random-forest memory use; model tree counts and
+other hyperparameters are unchanged across protocols.
 
 ## Reference results (Test set, threshold tuned on Validation via F2)
 | Model | Recall | PR-AUC | F2 | Precision | ROC-AUC |
