@@ -1,0 +1,5 @@
+references/raw/*.pdf
+references/raw/*.docx
+.venv/
+.env
+__pycache__/
