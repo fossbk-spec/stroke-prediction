@@ -492,5 +492,91 @@
     "ground_truth_quote": "Cited for the corrected repeated k-fold cross-validation test; variance factor to be verified against the full text.",
     "source_location": "Abstract or bibliographic metadata (Crossref/OpenAlex/Europe PMC, 2026-10-14)",
     "venue_rank": null
+  },
+  {
+    "citekey": "Wen2025LeakagePreprint",
+    "study_design": "Preprint (not peer reviewed), public stroke dataset",
+    "sample_size": null,
+    "patient_characteristics": null,
+    "intervention_technology": null,
+    "comparator": null,
+    "quantitative_metrics": {
+      "auc_leaky": 0.99,
+      "auc_xgb_correct": 0.84
+    },
+    "validation_strategy": null,
+    "limitations": null,
+    "ground_truth_quote": "applying SMOTE before data splitting introduces significant data leakage, artificially inflating AUC values up to 0.99 ... CatBoost's recall declined from 0.96 to 0.08, and XGBoost's AUC decreased from 0.99 to 0.84. Similarly, imputing missing values before splitting led to inflated metrics, albeit to a lesser extent ... class-weight adjustment ... achieved robust and balanced results (AUC up to 0.86)",
+    "source_location": "Abstract (Crossref/OpenAlex/Europe PMC, 2026-10-14)",
+    "venue_rank": null
+  },
+  {
+    "citekey": "Gibson2026Provenance",
+    "study_design": "Meta-research (data provenance, TRIPOD+AI items)",
+    "sample_size": null,
+    "patient_characteristics": null,
+    "intervention_technology": null,
+    "comparator": null,
+    "quantitative_metrics": {
+      "studies_found": 125,
+      "max_patient_id": 72940,
+      "unaccounted_percent": 93
+    },
+    "validation_strategy": null,
+    "limitations": null,
+    "ground_truth_quote": "The authenticity of both datasets could not be verified and have no reliable provenance of authenticity and should not be used for informing research or practice. From these two datasets, we found 125 clinical prediction model studies (Abstract); The maximum patient ID was 72,940 while only 5,110 observations were included in the data leaving 93% of potential observations unaccounted for (Results, PMC13352761)",
+    "source_location": "Abstract (Crossref/OpenAlex/Europe PMC, 2026-10-14); Results (full text PMC13352761)",
+    "venue_rank": null
+  },
+  {
+    "citekey": "Ratnaningsih2026Benchmark",
+    "study_design": "Methodological benchmark, Kaggle stroke data",
+    "sample_size": null,
+    "patient_characteristics": null,
+    "intervention_technology": null,
+    "comparator": null,
+    "quantitative_metrics": {
+      "auc_gb": 0.8415,
+      "pr_auc_gb": 0.2126,
+      "ece_lr": 0.0048,
+      "slope_lr": 0.967,
+      "slope_rf": 0.556
+    },
+    "validation_strategy": null,
+    "limitations": null,
+    "ground_truth_quote": "GB achieved the highest discrimination (AUC = 0.8415; PR-AUC = 0.2126), whereas LR showed the best calibration (ECE = 0.0048; slope = 0.967). RF produced high accuracy but very low sensitivity and severe miscalibration (slope = 0.556)",
+    "source_location": "Abstract (Crossref/OpenAlex/Europe PMC, 2026-10-14)",
+    "venue_rank": null
+  },
+  {
+    "citekey": "Starcke2025Parkinson",
+    "study_design": "Empirical leakage study (Parkinson's disease)",
+    "sample_size": null,
+    "patient_characteristics": null,
+    "intervention_technology": null,
+    "comparator": null,
+    "quantitative_metrics": {},
+    "validation_strategy": null,
+    "limitations": null,
+    "ground_truth_quote": "The inclusion of overt features dramatically improved performance, confirming that high accuracy was due to data leakage rather than genuine predictive power.",
+    "source_location": "Abstract (Crossref/OpenAlex/Europe PMC, 2026-10-14)",
+    "venue_rank": null
+  },
+  {
+    "citekey": "Liu2019CerebralStroke",
+    "study_design": "Model development, cerebral stroke dataset",
+    "sample_size": null,
+    "patient_characteristics": null,
+    "intervention_technology": null,
+    "comparator": null,
+    "quantitative_metrics": {
+      "records": 43400,
+      "strokes": 783
+    },
+    "validation_strategy": null,
+    "limitations": null,
+    "ground_truth_quote": "The medical dataset contains 43,400 records of potential patients which includes 783 occurrences of stroke. The false negative rate from our prediction approach is only 19.1%",
+    "source_location": "Abstract (Crossref/OpenAlex/Europe PMC, 2026-10-14)",
+    "venue_rank": null
   }
 ]

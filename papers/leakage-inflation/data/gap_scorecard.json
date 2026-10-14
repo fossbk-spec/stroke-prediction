@@ -1,0 +1,83 @@
+[
+  {
+    "gap_id": "GAP_01",
+    "gap_title": "Leakage inflation estimates that confound leakage with test-set prevalence and synthetic test records",
+    "gap_archetype": "Contradictory & Methodological",
+    "evidence_anchor": {
+      "cited_papers": ["Wen2025LeakagePreprint", "Vandewiele2021Oversampling", "Santos2018CVImbalanced", "Dritsas2022Stacking", "Rehman2023RDET"],
+      "verbatim_quote": "applying SMOTE before data splitting introduces significant data leakage, artificially inflating AUC values up to 0.99 ... XGBoost's AUC decreased from 0.99 to 0.84 (Wen et al., preprint)",
+      "context": "Prior demonstrations, including a 2025 preprint on a public stroke dataset, compare a SMOTE-before-split arm with a correct arm. The leaky arm, however, is scored on a re-balanced test set that contains synthetic records, so the contrast mixes leakage, evaluation prevalence and synthetic test cases. None reports matched, same-patient contrasts with resampling-aware uncertainty."
+    },
+    "reviewer_stress_test": {
+      "potential_rejection_reason": "Not novel: Wen et al. (2025) and Vandewiele et al. (2021) already showed that SMOTE before splitting inflates performance, and on a public stroke dataset at that.",
+      "counter_defense": "We do not claim to discover the flaw. We decompose it. P1a reproduces the published protocol; P1b holds the evaluation patients fixed, isolating leakage from prevalence and synthetic test rows; P3 isolates prevalence. The design uses repeated patient-grouped CV with corrected intervals and adds calibration. Wen et al. is an unreviewed preprint with a single split. We cite it as the closest prior work and show where its estimate sits within the decomposition."
+    },
+    "formulated_research_questions": {
+      "primary_rq": "On the Kaggle stroke data, how much of the performance inflation attributed to oversampling before splitting is due to leakage into training (P1b vs P0), and how much to scoring on re-balanced synthetic test data (P1a vs P1b)?",
+      "secondary_rqs": [
+        "Is preprocessing-only leakage (P2) negligible, as in other domains?",
+        "How much does evaluation prevalence alone (P3) change precision, PR-AUC and accuracy?"
+      ]
+    },
+    "evaluation_scorecard": {"novelty_score": 7.0, "feasibility_score": 9.5, "impact_score": 8.0, "evidence_strength": 8.5, "composite_score": 8.2}
+  },
+  {
+    "gap_id": "GAP_02",
+    "gap_title": "Lineage of the most-used Kaggle stroke dataset: an outcome-enriched subsample of a published 43,400-record dataset",
+    "gap_archetype": "Contextual (data provenance)",
+    "evidence_anchor": {
+      "cited_papers": ["Gibson2026Provenance", "Liu2019CerebralStroke", "Soladoye2025SR", "Velagapudi2021Discrepancies"],
+      "verbatim_quote": "The maximum patient ID was 72,940 while only 5,110 observations were included in the data leaving 93% of potential observations unaccounted for (Gibson et al., 2026)",
+      "context": "Gibson et al. found that the dataset lacks provenance and that most of its ID range is unaccounted for, but did not trace where the records come from. The 43,400-record cerebral stroke dataset (783 strokes) matches the dataset of Liu et al. (2019). All 5,110 Kaggle records occur in it with identical values. The subset keeps 249 of 783 strokes but only 4,861 of 42,617 non-strokes, an outcome-dependent sampling that raises the prevalence from 1.80% to 4.87%."
+    },
+    "reviewer_stress_test": {
+      "potential_rejection_reason": "Gibson et al. (2026) concluded that the dataset should not be used at all; a paper built on it adds to the problem.",
+      "counter_defense": "The paper is meta-research about a literature of more than 125 studies that already uses the dataset. It does not propose a clinical model. Tracing the lineage strengthens Gibson et al.'s case: the prevalence is a sampling artefact, and a patient-disjoint sample (38,290 records) allows a robustness check. We state explicitly that neither dataset should inform clinical practice."
+    },
+    "formulated_research_questions": {
+      "primary_rq": "What is the provenance relationship between the 5,110-record Kaggle stroke dataset and the 43,400-record cerebral stroke dataset, and how was the subset sampled with respect to the outcome?",
+      "secondary_rqs": [
+        "Do the leakage-inflation findings hold on the patient-disjoint remainder, which has a different prevalence (1.39%)?"
+      ]
+    },
+    "evaluation_scorecard": {"novelty_score": 9.0, "feasibility_score": 10.0, "impact_score": 8.5, "evidence_strength": 9.0, "composite_score": 9.1}
+  },
+  {
+    "gap_id": "GAP_03",
+    "gap_title": "Accuracy and balanced test sets as reporting artefacts in the stroke-prediction literature",
+    "gap_archetype": "Metric",
+    "evidence_anchor": {
+      "cited_papers": ["Soladoye2025SR", "Akinwumi2025Evaluating", "Yang2021Hypertensive", "Vu2024Suita", "Saito2015PR"],
+      "verbatim_quote": "ensemble methods consistently achieved highest accuracies for stroke occurrence prediction (range: 90.4-97.8 %) (Soladoye et al., 2025)",
+      "context": "The field summarises performance with accuracy and sometimes evaluates on artificially balanced test sets. Precision-based measures depend on prevalence."
+    },
+    "reviewer_stress_test": {
+      "potential_rejection_reason": "Already known: prevalence dependence of precision is textbook (Saito and Rehmsmeier, 2015).",
+      "counter_defense": "The principle is known, but its magnitude in this literature's own dataset and models is not. P3 quantifies it with matched folds. The point is presented as a secondary result that supports the reporting recommendations, not as a primary claim."
+    },
+    "formulated_research_questions": {
+      "primary_rq": "By how much do accuracy, precision and PR-AUC change when the same predictions are scored on a 1:1 balanced validation subset?",
+      "secondary_rqs": []
+    },
+    "evaluation_scorecard": {"novelty_score": 5.0, "feasibility_score": 10.0, "impact_score": 6.5, "evidence_strength": 9.0, "composite_score": 7.4}
+  },
+  {
+    "gap_id": "GAP_04",
+    "gap_title": "Does 1:1 resampling help at all on this dataset? Discrimination versus calibration",
+    "gap_archetype": "Translational",
+    "evidence_anchor": {
+      "cited_papers": ["Andersen2026TippingBalance", "Carriero2025Imbalance", "Piccininni2024Resampling", "vandenGoorbergh2022Imbalance", "Ratnaningsih2026Benchmark"],
+      "verbatim_quote": "Resampling had no positive impact on predictive performance ... calibration was consistently degraded (Andersen et al., 2026)",
+      "context": "The general finding is established. Ratnaningsih and Pamungkas (2026) already benchmarked calibration on this dataset, with random oversampling plus prior correction, but not against a no-resampling arm in the same folds."
+    },
+    "reviewer_stress_test": {
+      "potential_rejection_reason": "Fully established elsewhere and partly on this very dataset (Ratnaningsih 2026).",
+      "counter_defense": "Report it as confirmatory, not as a contribution claim. It matters for interpretation because P0 itself uses SMOTENC, so the leak-free reference is not necessarily the best-calibrated option."
+    },
+    "formulated_research_questions": {
+      "primary_rq": "On the same folds, does removing SMOTENC (P4) change ROC-AUC, and how does it change the Brier score and threshold-based measures?",
+      "secondary_rqs": []
+    },
+    "evaluation_scorecard": {"novelty_score": 3.5, "feasibility_score": 10.0, "impact_score": 6.0, "evidence_strength": 9.5, "composite_score": 6.6}
+  }
+]

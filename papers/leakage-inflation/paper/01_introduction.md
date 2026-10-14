@@ -12,10 +12,20 @@ The stroke-prediction literature shows these problems clearly.
 - **Large cohorts and pooled analyses.** In a pooled analysis of 62,482 participants, ML did not improve discrimination over the pooled cohort equations [@Hong2023Race]. A tree-based score fell from a C-statistic of 87.43% in derivation to 75.29% at external validation [@Orfanoudaki2020NonLinear].
 - **Reviews.** Reviews of the field flag suspected overfitting, missing calibration and external validation [@HeseltineCarp2025SR], and training data of unclear or unrepresentative provenance [@Soladoye2025SR; @Velagapudi2021Discrepancies].
 
-What is missing is a controlled estimate, on the same data, models and folds, of how much each common leaky protocol inflates reported performance. Without it, readers cannot tell how far published results on these datasets reflect method rather than leakage.
+The flaw itself is not new. Oversampling before splitting is a documented source of over-optimism [@Santos2018CVImbalanced; @Vandewiele2021Oversampling]. Leakage can inflate performance in clinical prediction from tabular data more broadly [@Starcke2025Parkinson]. A recent preprint on a public stroke dataset reported AUC values up to 0.99 with SMOTE applied before splitting, against 0.84 for XGBoost when SMOTE was restricted to the training set [@Wen2025LeakagePreprint]. Such comparisons, however, score the leaky arm on a re-balanced test set that contains synthetic records. They therefore mix three effects: leakage into training, the changed evaluation prevalence, and synthetic test cases. Leakage forms also differ widely in their effect, from drastic inflation to none [@Rosenblatt2024Leakage]. What is missing is a decomposition, on the same data, models and validation patients, of how much each of these mechanisms contributes, with uncertainty that respects repeated cross-validation [@Bates2023CV].
 
-This study provides that estimate. Its contributions are:
-1. **Controlled quantification of inflation.** On the Kaggle Stroke Prediction Dataset we compare a leak-free, patient-grouped protocol with oversampling before splitting (both as published and in a version matched to the same validation patients), preprocessing before splitting, a balanced evaluation set, and no resampling. For the matched protocols we report fold-level paired differences with corrected resampled intervals, for discrimination, threshold-based measures and the Brier score.
-2. **A provenance finding and a robustness check.** We show that the widely used 5,110-record dataset is an exact subset of a larger 43,400-record dataset. We repeat the experiment on the 38,290 patients who do not overlap with it.
+A second gap concerns the data. Gibson et al. showed that the Kaggle stroke dataset lacks verifiable provenance. They found 125 prediction-model studies built on it and its diabetes counterpart, and noted that with a maximum patient identifier of 72,940 but only 5,110 records, 93% of potential observations are unaccounted for [@Gibson2026Provenance]. Where those records went, and how the 5,110 were selected, has not been established. This matters because the dataset's prevalence is the basis for every reported accuracy, recall and precision in that literature.
+
+This study addresses both gaps. Its contributions are:
+1. **Decomposition of leakage inflation.** On the Kaggle Stroke Prediction Dataset we compare a leak-free, patient-grouped protocol with several alternatives:
+   - oversampling before splitting, both as published (P1a) and matched to the same validation patients (P1b);
+   - preprocessing before splitting (P2);
+   - a balanced evaluation set (P3);
+   - no resampling (P4).
+
+   This separates leakage into training from evaluation-prevalence and synthetic-test effects. For the matched protocols we report fold-level paired differences with corrected resampled intervals, for discrimination, threshold-based measures and the Brier score.
+2. **The lineage of the dataset.** We show that all 5,110 records are contained, with identical values and labels, in a 43,400-record dataset with 783 strokes. Those counts match the cerebral stroke dataset of Liu et al. [@Liu2019CerebralStroke]. The subset was sampled depending on the outcome: it retains 249 of 783 strokes but only 4,861 of 42,617 non-strokes, which raises the prevalence from 1.80% to 4.87%. We repeat the experiment on the 38,290 patients who do not overlap with the subset.
 3. **An evidence base for the protocols.** We link each protocol to documented practice through a rapid review of 19 core studies with verified citations, which also identified retracted studies in this literature.
-4. **Reproducible tooling.** We release open, tested code that reproduces every number in this paper with a single command.
+4. **Reproducible tooling.** We release open, tested code that reproduces every number in this paper.
+
+Consistent with Gibson et al. [@Gibson2026Provenance], neither dataset should inform clinical decisions. Our analyses concern the methods of the literature built on them, not a deployable model.
